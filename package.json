@@ -1,0 +1,28 @@
+{
+  "name": "omniclaro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OmniClaro - Orquestrador conversacional unificado (FIAP 4SIS)",
+  "workspaces": [
+    "backend",
+    "dashboard",
+    "customer-chat"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,dashboard,chat -c red,cyan,green \"npm:dev:backend\" \"npm:dev:dashboard\" \"npm:dev:chat\"",
+    "dev:backend": "npm run start:dev --workspace backend",
+    "dev:dashboard": "npm run dev --workspace dashboard",
+    "dev:chat": "npm run dev --workspace customer-chat",
+    "build": "npm run build --workspace backend && npm run build --workspace dashboard && npm run build --workspace customer-chat",
+    "seed": "npm run seed --workspace backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  }
+}

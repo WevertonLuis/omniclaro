@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-canvas text-ink-900 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .label-caps {
+    @apply text-[11px] font-bold tracking-[0.09em] uppercase text-ink-700;
+  }
+}
+
+/* Scrollbar discreta, coerente com o mockup */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d7dce2;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

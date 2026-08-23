@@ -1,0 +1,92 @@
+# ============================================================================
+# OmniClaro - stack completa (Postgres + Redis + orquestrador + 2 frontends)
+#
+# Este arquivo representa a arquitetura de referencia da documentacao tecnica.
+# Para rodar sem Docker, use o modo simplificado:  npm run dev
+# (SQLite via sql.js + cache em memoria — ver README).
+# ============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omniclaro-postgres
+    environment:
+      POSTGRES_USER: omniclaro
+      POSTGRES_PASSWORD: omniclaro
+      POSTGRES_DB: omniclaro
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U omniclaro']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: omniclaro-redis
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: omniclaro-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_DRIVER: postgres
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: omniclaro
+      PGPASSWORD: omniclaro
+      PGDATABASE: omniclaro
+      CACHE_DRIVER: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SESSION_TTL_SECONDS: 86400
+      HANDOFF_CONFIDENCE_THRESHOLD: 0.80
+      # Repassada do .env da raiz do projeto.
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+    ports:
+      - '3000:3000'
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: omniclaro-dashboard
+    depends_on:
+      - backend
+    ports:
+      - '5173:5173'
+
+  customer-chat:
+    build:
+      context: .
+      dockerfile: customer-chat/Dockerfile
+    container_name: omniclaro-customer-chat
+    depends_on:
+      - backend
+    ports:
+      - '5174:5174'
+
+volumes:
+  pgdata:
+  redisdata:

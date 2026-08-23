@@ -1,0 +1,10 @@
+# Normaliza quebras de linha: o repositorio guarda LF, o checkout no Windows
+# usa CRLF. Evita diffs falsos quando alguem clonar em Linux ou macOS.
+* text=auto eol=lf
+
+# Binarios e arquivos gerados nao entram na normalizacao nem no diff.
+*.png binary
+*.jpg binary
+*.ico binary
+*.db binary
+package-lock.json -diff linguist-generated
