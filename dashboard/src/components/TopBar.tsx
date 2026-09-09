@@ -2,12 +2,19 @@ import { useEffect, useState } from 'react';
 import type { Operador } from '../lib/auth';
 import { BoltIcon } from './icons';
 
+export type AbaOperador = 'atendimento' | 'painel';
+
 interface Props {
   operador: Operador;
   onSair: () => void;
+  /** Presentes só para OPERADOR: o supervisor tem uma tela única. */
+  aba?: AbaOperador;
+  onTrocarAba?: (aba: AbaOperador) => void;
+  /** Badge de chamados aguardando, exibido na aba de atendimento. */
+  naFila?: number;
 }
 
-export default function TopBar({ operador, onSair }: Props) {
+export default function TopBar({ operador, onSair, aba, onTrocarAba, naFila = 0 }: Props) {
   const [hora, setHora] = useState(() => new Date());
 
   useEffect(() => {
@@ -36,6 +43,22 @@ export default function TopBar({ operador, onSair }: Props) {
           <span className="rounded-md bg-claro-rose px-1.5 py-0.5 text-[10px] font-semibold text-claro-dark">
             Supervisão
           </span>
+        )}
+
+        {aba && onTrocarAba && (
+          <nav className="ml-3 flex items-center gap-1 border-l border-hair pl-3.5">
+            <BotaoAba ativa={aba === 'atendimento'} onClick={() => onTrocarAba('atendimento')}>
+              Atendimento
+              {naFila > 0 && (
+                <span className="ml-1.5 rounded-full bg-claro-red px-1.5 text-[9.5px] font-bold text-white">
+                  {naFila}
+                </span>
+              )}
+            </BotaoAba>
+            <BotaoAba ativa={aba === 'painel'} onClick={() => onTrocarAba('painel')}>
+              Meu painel
+            </BotaoAba>
+          </nav>
         )}
       </div>
 
@@ -71,5 +94,28 @@ export default function TopBar({ operador, onSair }: Props) {
         </div>
       </div>
     </header>
+  );
+}
+
+function BotaoAba({
+  ativa,
+  onClick,
+  children,
+}: {
+  ativa: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={ativa ? 'page' : undefined}
+      className={`flex items-center rounded-md px-2.5 py-1.5 text-[12px] font-medium transition ${
+        ativa ? 'bg-claro-rose text-claro-dark' : 'text-ink-500 hover:bg-canvas hover:text-ink-900'
+      }`}
+    >
+      {children}
+    </button>
   );
 }

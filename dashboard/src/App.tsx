@@ -4,8 +4,9 @@ import AiContextPanel from './components/AiContextPanel';
 import CallBar from './components/CallBar';
 import ChatColumn from './components/ChatColumn';
 import LoginScreen from './components/LoginScreen';
+import OperatorDashboard from './components/OperatorDashboard';
 import QueueScreen from './components/QueueScreen';
-import TopBar from './components/TopBar';
+import TopBar, { type AbaOperador } from './components/TopBar';
 import { buscarFila } from './lib/api';
 import { useAuth } from './lib/auth';
 import { nomeCurto } from './lib/mask';
@@ -29,17 +30,32 @@ export default function App() {
     return <LoginScreen />;
   }
 
-  return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <TopBar operador={operador} onSair={sair} />
-      {operador.papel === 'SUPERVISOR' ? <AdminDashboard /> : <AreaOperador token={token} operador={operador.nome} />}
-    </div>
-  );
+  if (operador.papel === 'SUPERVISOR') {
+    return (
+      <div className="flex h-full flex-col overflow-hidden">
+        <TopBar operador={operador} onSair={sair} />
+        <AdminDashboard />
+      </div>
+    );
+  }
+
+  return <AreaOperador token={token} nomeOperador={operador.nome} operadorLogado={operador} onSair={sair} />;
 }
 
 // --------------------------- Área do operador ---------------------------
 
-function AreaOperador({ token, operador }: { token: string; operador: string }) {
+function AreaOperador({
+  token,
+  nomeOperador,
+  operadorLogado,
+  onSair,
+}: {
+  token: string;
+  nomeOperador: string;
+  operadorLogado: import('./lib/auth').Operador;
+  onSair: () => void;
+}) {
+  const [aba, setAba] = useState<AbaOperador>('atendimento');
   const [conectado, setConectado] = useState(socket.connected);
   const [fila, setFila] = useState<HandoffCard[]>([]);
   const [ativo, setAtivo] = useState<HandoffCard | null>(null);
@@ -112,6 +128,7 @@ function AreaOperador({ token, operador }: { token: string; operador: string }) 
       const alvo = atualizado?.protocolo ? atualizado : card;
       setAtivo(alvo);
       setMensagens(alvo.conversa ?? []);
+      setAba('atendimento');
     });
   }, []);
 
@@ -133,25 +150,38 @@ function AreaOperador({ token, operador }: { token: string; operador: string }) 
   }, [ativo]);
 
   const nomeCliente = useMemo(() => (ativo ? nomeCurto(ativo.cliente.nome) : ''), [ativo]);
-
-  if (!ativo) {
-    return <QueueScreen fila={fila} conectado={conectado} onAssumir={assumir} />;
-  }
+  const aguardando = useMemo(() => fila.filter((c) => c.status === 'NA_FILA').length, [fila]);
 
   return (
-    <>
-      <CallBar card={ativo} onEncerrar={encerrar} />
-      <div className="flex min-h-0 flex-1">
-        <ChatColumn
-          operador={operador}
-          nomeCliente={nomeCliente}
-          mensagens={mensagens}
-          digitando={digitando}
-          respostasRapidas={RESPOSTAS_RAPIDAS}
-          onEnviar={enviar}
-        />
-        <AiContextPanel card={ativo} />
-      </div>
-    </>
+    <div className="flex h-full flex-col overflow-hidden">
+      <TopBar
+        operador={operadorLogado}
+        onSair={onSair}
+        aba={aba}
+        onTrocarAba={setAba}
+        naFila={aguardando}
+      />
+
+      {aba === 'painel' ? (
+        <OperatorDashboard onIrParaFila={() => setAba('atendimento')} />
+      ) : !ativo ? (
+        <QueueScreen fila={fila} conectado={conectado} onAssumir={assumir} />
+      ) : (
+        <>
+          <CallBar card={ativo} onEncerrar={encerrar} />
+          <div className="flex min-h-0 flex-1">
+            <ChatColumn
+              operador={nomeOperador}
+              nomeCliente={nomeCliente}
+              mensagens={mensagens}
+              digitando={digitando}
+              respostasRapidas={RESPOSTAS_RAPIDAS}
+              onEnviar={enviar}
+            />
+            <AiContextPanel card={ativo} />
+          </div>
+        </>
+      )}
+    </div>
   );
 }

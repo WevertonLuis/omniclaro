@@ -164,6 +164,96 @@ export class AdminService {
     });
   }
 
+  /**
+   * Metricas do proprio operador. O nome vem do JWT, nunca de parametro:
+   * assim um operador nao consegue ler o desempenho de outro.
+   */
+  async metricasDoOperador(nomeOperador: string) {
+    const [atendimentos, sessoes, mensagens, intencoes, clientes] = await Promise.all([
+      this.atendimentos.find({ order: { data_entrada_fila: 'DESC' } }),
+      this.sessoes.find(),
+      this.mensagens.find(),
+      this.intencoes.find(),
+      this.clientes.find(),
+    ]);
+
+    const meus = atendimentos.filter((a) => a.id_operador === nomeOperador);
+    const naFila = atendimentos.filter((a) => a.status === 'NA_FILA');
+    const emAndamento = meus.filter((a) => a.status === 'EM_ATENDIMENTO');
+    const encerrados = meus.filter((a) => a.status === 'ENCERRADO');
+
+    const esperas = meus.map((a) => a.tempo_espera_segundos).filter((n) => n > 0);
+    const esperaMedia = esperas.length ? esperas.reduce((a, b) => a + b, 0) / esperas.length : 0;
+
+    const csats = meus.map((a) => a.avaliacao_csat).filter((n): n is number => typeof n === 'number');
+    const csatMedio = csats.length ? csats.reduce((a, b) => a + b, 0) / csats.length : null;
+
+    // Mensagens que este operador escreveu, em todas as sessoes que atendeu.
+    const minhasSessoes = new Set(meus.map((a) => a.id_sessao));
+    const minhasMensagens = mensagens.filter((m) => m.remetente === 'ATENDENTE' && minhasSessoes.has(m.id_sessao));
+
+    // Intencoes dos clientes que este operador atendeu.
+    const idsMensagensCliente = new Set(
+      mensagens.filter((m) => m.remetente === 'CLIENTE' && minhasSessoes.has(m.id_sessao)).map((m) => m.id),
+    );
+    const minhasIntencoes = intencoes.filter((i) => idsMensagensCliente.has(i.id_mensagem));
+
+    const kpis: Kpi[] = [
+      {
+        rotulo: 'Aguardando na fila',
+        valor: String(naFila.length),
+        detalhe: naFila.length ? 'chamado(s) sem atendente' : 'fila zerada',
+      },
+      {
+        rotulo: 'Em atendimento',
+        valor: String(emAndamento.length),
+        detalhe: 'assumidos por você agora',
+      },
+      {
+        rotulo: 'Encerrados',
+        valor: String(encerrados.length),
+        detalhe: `${meus.length} assumido(s) no total`,
+      },
+      {
+        rotulo: 'Espera média até você assumir',
+        valor: esperaMedia ? `${esperaMedia.toFixed(0)}s` : '—',
+        detalhe: esperas.length ? `${esperas.length} chamado(s) medido(s)` : 'sem histórico ainda',
+      },
+      {
+        rotulo: 'Mensagens enviadas',
+        valor: String(minhasMensagens.length),
+        detalhe: `em ${minhasSessoes.size} sessão(ões)`,
+      },
+      {
+        rotulo: 'Seu CSAT',
+        valor: csatMedio ? csatMedio.toFixed(1) : '—',
+        detalhe: csats.length ? `${csats.length} avaliação(ões)` : 'sem avaliações ainda',
+      },
+    ];
+
+    const meusAtendimentos = meus.slice(0, 10).map((a) => {
+      const sessao = sessoes.find((s) => s.id === a.id_sessao);
+      const cliente = clientes.find((c) => c.id === sessao?.id_cliente);
+      return {
+        protocolo: a.numero_protocolo,
+        status: a.status,
+        entrouEm: new Date(a.data_entrada_fila).toISOString(),
+        esperaSegundos: a.tempo_espera_segundos,
+        cliente: cliente ? { nome: cliente.nome, cpfMascarado: maskCpf(cliente.cpf_cnpj) } : null,
+        resumo: a.resumo_cognitivo_ia,
+        canal: sessao?.canal_origem ?? '—',
+      };
+    });
+
+    return {
+      operador: nomeOperador,
+      kpis,
+      intencoesAtendidas: this.agrupar(minhasIntencoes.map((i) => i.nome_intencao)),
+      meusAtendimentos,
+      geradoEm: new Date().toISOString(),
+    };
+  }
+
   private agrupar(valores: string[]) {
     const contagem = new Map<string, number>();
     for (const v of valores) contagem.set(v, (contagem.get(v) ?? 0) + 1);
