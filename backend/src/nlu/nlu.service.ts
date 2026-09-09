@@ -4,7 +4,7 @@ import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
 import { AppConfig } from '../config/configuration';
 import { extrairPorHeuristica } from './fallback.extractor';
 import { RESPONSE_SCHEMA, SYSTEM_PROMPT } from './gemini.schema';
-import { INTENCOES, IntencaoDetectada, ResultadoNlu, SENTIMENTOS, URGENCIAS } from './nlu.types';
+import { INTENCOES, IntencaoDetectada, ResultadoNlu, SENTIMENTOS, URGENCIAS, enriquecerIntencao } from './nlu.types';
 
 export interface ContextoNlu {
   nomeCliente?: string;
@@ -33,10 +33,7 @@ export class NluService {
 
     const genAI = new GoogleGenerativeAI(cfg.apiKey);
 
-    // Os modelos Gemini 3.x raciocinam antes de responder por padrao, o que leva
-    // a resposta de ~1,3s para ~20s. Extracao de intencao com schema fechado nao
-    // precisa disso. `thinkingLevel` so existe na familia 3.x — em modelos mais
-    // antigos deixe GEMINI_THINKING_LEVEL vazio para omitir o campo.
+    
     const generationConfig: Record<string, unknown> = {
       temperature: 0.2,
       responseMimeType: 'application/json',
@@ -81,8 +78,7 @@ export class NluService {
 
       return this.normalizar(parsed, Date.now() - inicio);
     } catch (erro) {
-      // O SDK nem sempre popula `message` (ex.: 404 de modelo descontinuado
-      // chega com o corpo so em toString), entao caimos por varios formatos.
+      
       const detalhe =
         erro?.message?.trim() ||
         String(erro ?? '').trim() ||
@@ -122,7 +118,7 @@ export class NluService {
     ].join('\n');
   }
 
-  /** Aceita JSON puro ou embrulhado em cerca de codigo. */
+ 
   private parseSeguro(bruto: string): any | null {
     if (!bruto) return null;
     const limpo = bruto.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
@@ -140,19 +136,21 @@ export class NluService {
     }
   }
 
-  /** Blinda o dominio contra campos faltantes ou fora do dominio esperado. */
+ 
   private normalizar(bruto: any, latenciaMs: number): ResultadoNlu {
     const intencoes: IntencaoDetectada[] = (Array.isArray(bruto.intencoes) ? bruto.intencoes : [])
       .filter((i: any) => i && INTENCOES.includes(i.nome))
-      .map((i: any) => ({
-        nome: i.nome,
-        confianca: Math.max(0, Math.min(1, Number(i.confianca) || 0)),
-        entidades: this.limparEntidades(i.entidades),
-      }))
+      .map((i: any) =>
+        enriquecerIntencao({
+          nome: i.nome,
+          confianca: Math.max(0, Math.min(1, Number(i.confianca) || 0)),
+          entidades: this.limparEntidades(i.entidades),
+        }),
+      )
       .sort((a, b) => b.confianca - a.confianca);
 
     if (intencoes.length === 0) {
-      intencoes.push({ nome: 'OUTROS', confianca: 0.3, entidades: {} });
+      intencoes.push(enriquecerIntencao({ nome: 'OUTROS', confianca: 0.3, entidades: {} }));
     }
 
     return {

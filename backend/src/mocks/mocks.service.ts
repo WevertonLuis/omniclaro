@@ -23,15 +23,10 @@ export interface Oferta {
   elegivel: boolean;
 }
 
-/**
- * Mocks dos sistemas legados da Claro (provisionamento de rede e catalogo comercial).
- * Conforme a Matriz de Status do Prototipo, nao ha integracao SOAP nem billing real.
- */
 @Injectable()
 export class MocksService {
   private readonly logger = new Logger(MocksService.name);
 
-  /** Simula o diagnostico remoto: leva 2-3s, como a chamada real ao sistema de provisionamento. */
   async resetSignal(equipamento = 'modem'): Promise<DiagnosticoRede> {
     const inicio = Date.now();
     const atraso = 2000 + Math.floor(Math.random() * 1000);
@@ -53,7 +48,7 @@ export class MocksService {
     };
   }
 
-  /** Catalogo comercial elegivel para o perfil do cliente. */
+  
   async listarOfertas(filtro?: string): Promise<Oferta[]> {
     await new Promise((r) => setTimeout(r, 250));
 
@@ -103,7 +98,6 @@ export class MocksService {
     return filtrado.length ? filtrado : catalogo;
   }
 
-  /** Melhor oferta para a entidade de servico extraida pelo NLU. */
   async melhorOferta(servico?: string): Promise<Oferta> {
     const ofertas = await this.listarOfertas(servico);
     return ofertas[0];

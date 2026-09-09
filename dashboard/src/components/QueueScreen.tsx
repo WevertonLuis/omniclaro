@@ -18,7 +18,7 @@ export default function QueueScreen({ fila, conectado, onAssumir }: Props) {
       <div className="mx-auto max-w-3xl">
         <div className="mb-5 flex items-baseline justify-between">
           <div>
-            <h1 className="text-[18px] font-bold tracking-tight text-ink-900">Fila de transbordo</h1>
+            <h1 className="text-[18px] font-bold tracking-tight text-ink-900">Fila de chamados</h1>
             <p className="mt-0.5 text-[12.5px] text-ink-500">
               Sessoes escaladas pelo orquestrador, com resumo cognitivo pronto para assumir.
             </p>

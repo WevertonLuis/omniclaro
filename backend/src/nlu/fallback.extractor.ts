@@ -1,4 +1,4 @@
-import { IntencaoDetectada, ResultadoNlu } from './nlu.types';
+import { IntencaoDetectada, ResultadoNlu, enriquecerIntencao } from './nlu.types';
 
 interface Regra {
   intencao: IntencaoDetectada['nome'];
@@ -68,17 +68,19 @@ export function extrairPorHeuristica(texto: string, latenciaMs = 0): ResultadoNl
 
   for (const regra of REGRAS) {
     if (regra.termos.test(texto)) {
-      intencoes.push({
-        nome: regra.intencao,
-        confianca: regra.confianca,
-        entidades: regra.entidade ? regra.entidade(texto) : {},
-      });
+      intencoes.push(
+        enriquecerIntencao({
+          nome: regra.intencao,
+          confianca: regra.confianca,
+          entidades: regra.entidade ? regra.entidade(texto) : {},
+        }),
+      );
     }
   }
 
   if (intencoes.length === 0) {
     // Nada reconhecido: confianca baixa proposital para acionar o transbordo.
-    intencoes.push({ nome: 'OUTROS', confianca: 0.35, entidades: {} });
+    intencoes.push(enriquecerIntencao({ nome: 'OUTROS', confianca: 0.35, entidades: {} }));
   }
 
   intencoes.sort((a, b) => b.confianca - a.confianca);

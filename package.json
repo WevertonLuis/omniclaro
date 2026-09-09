@@ -14,7 +14,8 @@
     "dev:dashboard": "npm run dev --workspace dashboard",
     "dev:chat": "npm run dev --workspace customer-chat",
     "build": "npm run build --workspace backend && npm run build --workspace dashboard && npm run build --workspace customer-chat",
-    "seed": "npm run seed --workspace backend"
+    "seed": "npm run seed --workspace backend",
+    "db": "npm run db --workspace backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

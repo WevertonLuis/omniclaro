@@ -17,6 +17,10 @@ export class AtendimentoHumano {
   @Column({ type: 'int', default: 0 })
   tempo_espera_segundos: number;
 
+  /** CSAT de 1 a 5, coletado apos o encerramento (secao 7.1 da documentacao). */
+  @Column({ type: 'int', nullable: true })
+  avaliacao_csat: number | null;
+
   /** NA_FILA | EM_ATENDIMENTO | ENCERRADO */
   @Column({ default: 'NA_FILA' })
   status: string;

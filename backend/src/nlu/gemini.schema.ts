@@ -1,10 +1,6 @@
 import { SchemaType } from '@google/generative-ai';
 import { INTENCOES, SENTIMENTOS, URGENCIAS } from './nlu.types';
 
-/**
- * Schema JSON forcado (structured output). O Gemini e obrigado a devolver
- * exatamente esta forma, o que elimina parsing de texto livre.
- */
 export const RESPONSE_SCHEMA = {
   type: SchemaType.OBJECT,
   properties: {

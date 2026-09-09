@@ -1,0 +1,205 @@
+================================================================================
+OMNICLARO - NARRACAO DO CODIGO
+Como abrir, o que mostrar, e o que falar
+================================================================================
+
+COMO USAR ESTE ARQUIVO
+  As falas abaixo nao sao para decorar. Leia uma vez, entenda a IDEIA de cada
+  bloco e fale com as suas palavras. Texto decorado soa decorado.
+  O que importa e a ordem e o "por que", nao a frase exata.
+
+TRES HABITOS QUE FAZEM PARECER NATURAL
+  1. Diga o PROBLEMA antes de mostrar o codigo.
+     Ruim:  "Aqui temos um Promise.all."
+     Bom:   "O problema era nao fazer o cliente esperar duas vezes. Olha como
+             a gente resolveu."
+
+  2. Nao leia sintaxe em voz alta. Traduza.
+     Ruim:  "Aqui tem um if com pipe pipe verificando pedidoExplicito."
+     Bom:   "Sao tres motivos que jogam pro humano. Qualquer um deles basta."
+
+  3. Aponte com o mouse em vez de descrever posicao.
+     Ruim:  "Na linha 147, no meio do arquivo..."
+     Bom:   (selecionar o trecho com o mouse) "Esse pedaco aqui."
+
+  E tudo bem respirar. Silencio de dois segundos enquanto voce rola a tela e
+  normal e soa melhor do que preencher com "entao... ahn...".
+
+
+================================================================================
+ABERTURA - 10 segundos
+================================================================================
+
+TELA: VS Code aberto, barra lateral visivel, na raiz do projeto.
+
+FALAR mais ou menos assim:
+
+  "Deixa eu mostrar como isso funciona por dentro. Sao tres partes: o
+   orquestrador em NestJS, e dois frontends em React, um pro cliente e um
+   pro atendente."
+
+ACAO: passe o mouse pelas pastas backend / dashboard / customer-chat enquanto
+      fala. Nao abra nada ainda.
+
+
+================================================================================
+ARQUIVO 1 - O ORQUESTRADOR         ~60 segundos
+backend/src/orchestrator/orchestrator.service.ts
+================================================================================
+
+ACAO: abrir o arquivo, ir ate o metodo processar().
+
+FALAR, enquanto rola devagar pelos comentarios numerados:
+
+  "Esse e o coracao. Quando chega uma mensagem, ele identifica o cliente,
+   recupera o contexto da sessao, e manda o texto pro Gemini."
+
+ACAO: PARE no passo 7. Selecione com o mouse o bloco do Promise.all.
+
+FALAR (esta e a fala mais importante do video inteiro):
+
+  "E aqui esta a ideia do projeto. O cliente falou de dois assuntos na mesma
+   frase: o Wi-Fi caindo e o pacote de HBO. Em vez de tratar um de cada vez,
+   a gente dispara os dois ao mesmo tempo. O diagnostico de rede e a consulta
+   ao catalogo rodam juntos.
+
+   Se fosse em sequencia, o cliente esperaria a soma dos dois. Assim ele
+   espera o mais demorado, so."
+
+ACAO: role um pouco pra cima, ate o passo 6 (a regra de transbordo).
+
+FALAR:
+
+  "E antes disso tem essa decisao aqui. O sistema so escala pro atendente
+   humano em tres situacoes: se o cliente pedir, se o proprio modelo sinalizar
+   que o caso passou do que ele da conta, ou se a confianca da leitura ficar
+   abaixo de oitenta por cento.
+
+   Esse numero e configuravel, nao ta chumbado no codigo."
+
+>> DICA: nao tente explicar os 9 passos. Escolha o 7 e o 6 e siga em frente.
+
+
+================================================================================
+ARQUIVO 2 - O PROMPT E O SCHEMA         ~40 segundos
+backend/src/nlu/gemini.schema.ts
+================================================================================
+
+ACAO: abrir o arquivo. Comecar mostrando o RESPONSE_SCHEMA.
+
+FALAR:
+
+  "Uma coisa que a gente queria evitar era ficar interpretando texto solto
+   que o modelo devolve. Entao o Gemini responde num formato fechado: esse
+   schema aqui e obrigatorio, a propria API valida antes de devolver."
+
+ACAO: role ate o array "intencoes" e selecione.
+
+FALAR:
+
+  "E repara que 'intencoes' e uma lista. Nao e uma intencao so. Foi
+   proposital, e o que permite a leitura dupla."
+
+ACAO: role ate o SYSTEM_PROMPT, regra numero 1.
+
+FALAR, lendo a regra em voz alta (essa da pra ler mesmo, e curta):
+
+  "'Uma mensagem pode conter multiplas intencoes simultaneas. Extraia todas.'
+   E ate o exemplo que a gente deu pro modelo e o caso do Wi-Fi com HBO."
+
+
+================================================================================
+ARQUIVO 3 - LGPD         ~35 segundos
+backend/src/common/mask.util.ts
+================================================================================
+
+>> Este e o arquivo que rende ponto com a banca. Nao pule.
+
+ACAO: abrir. E um arquivo pequeno, cabe inteiro na tela.
+
+FALAR:
+
+  "Esse aqui foi uma correcao que a gente fez em cima do prototipo do Figma.
+
+   O mockup original mostrava o CPF completo na tela do atendente. So que a
+   documentacao do projeto fala de mascaramento de dados pessoais, por LGPD.
+   Entao a gente mudou: o orquestrador so entrega o CPF mascarado. O documento
+   inteiro nao trafega nem pela API nem pelo WebSocket."
+
+ACAO: abrir tambem dashboard/src/lib/mask.ts (rapido, 5 segundos).
+
+FALAR:
+
+  "E no frontend a gente aplica de novo, como segunda barreira. Se algum dia
+   um CPF inteiro chegar por outro caminho, ele ainda aparece mascarado."
+
+
+================================================================================
+ARQUIVO 4 - O TRANSBORDO         ~30 segundos
+backend/src/handoff/handoff.service.ts
+================================================================================
+
+ACAO: abrir, ir no metodo enfileirar().
+
+FALAR:
+
+  "E quando precisa passar pro humano, e aqui. Ele congela o contexto: grava
+   o resumo que a IA escreveu, muda o status da sessao, escala o protocolo e
+   empurra o card pro painel do atendente por WebSocket.
+
+   Que e exatamente aquele card que voces viram aparecer na fila agora ha
+   pouco."
+
+>> Se voce ja mostrou a demonstracao antes, essa ligacao com o que o
+   espectador acabou de ver funciona muito bem. Faca a conexao explicita.
+
+
+================================================================================
+OPCIONAL - SE SOBRAR TEMPO         ~25 segundos
+backend/src/nlu/fallback.extractor.ts
+================================================================================
+
+FALAR:
+
+  "Ah, e uma ultima coisa. Se o Gemini cair, ou a chave estourar a cota, o
+   sistema nao para. Ele cai nesse extrator por palavra-chave aqui, e marca
+   na resposta que aquilo nao veio do modelo. O atendente ve isso no painel."
+
+>> Isso mostra maturidade de engenharia. Vale os 25 segundos se voce tiver.
+
+
+================================================================================
+FECHAMENTO DO BLOCO DE CODIGO - 10 segundos
+================================================================================
+
+FALAR:
+
+  "No fim das contas o codigo todo gira em torno de uma decisao: ler a
+   mensagem inteira de uma vez, e nao um pedaco de cada vez."
+
+ACAO: feche os arquivos ou volte pro navegador.
+
+
+================================================================================
+SE VOCE ESTIVER USANDO O ROTEIRO CURTO (3 min no total)
+================================================================================
+
+Corte para DOIS arquivos apenas:
+
+  1. orchestrator.service.ts  -> so o Promise.all do passo 7
+  2. mask.util.ts             -> a correcao de LGPD
+
+Sao os dois que sustentam sozinhos. O schema e o handoff sao explicacao;
+esses dois sao argumento.
+
+
+================================================================================
+ANTES DE GRAVAR - CHECAGEM RAPIDA
+================================================================================
+  [ ] Fonte do editor aumentada (Ctrl + "+" umas 3 vezes)
+  [ ] Ctrl+B esconde a barra lateral quando quiser codigo em tela cheia
+  [ ] backend/.env NAO deve ser aberto (tem a chave real; ja esta oculto)
+  [ ] Feche abas de arquivos antigos: Ctrl+K depois W
+  [ ] Deixe os 4 arquivos ja abertos em abas, na ordem. Voce so troca de aba
+      em vez de procurar arquivo na arvore. Fica MUITO mais fluido.
+================================================================================

@@ -1,0 +1,22 @@
+{
+  // O arquivo .env carrega a GEMINI_API_KEY real. Ficar oculto no explorador
+  // evita exposicao acidental em gravacoes de tela e apresentacoes.
+  // Para editar o .env, use o terminal ou remova a linha abaixo.
+  "files.exclude": {
+    "**/.env": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/data": true
+  },
+  "search.exclude": {
+    "**/.env": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/package-lock.json": true
+  },
+  "files.readonlyInclude": {
+    "**/package-lock.json": true
+  },
+  "editor.rulers": [110],
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

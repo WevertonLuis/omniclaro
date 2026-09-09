@@ -29,10 +29,8 @@ export class InboundMessageDto {
 export class WebhookController {
   constructor(private readonly orchestrator: OrchestratorService) {}
 
-  /**
-   * Ingestao de mensagem do cliente. Simula o webhook do WhatsApp Business API;
-   * o mesmo endpoint atende App Minha Claro e Portal Web via campo `canal`.
-   */
+  /*mensagem do cliente. Simula o webhook do WhatsApp Business API;*/
+  
   @Post('messages')
   @HttpCode(200)
   async receber(@Body() dto: InboundMessageDto) {
