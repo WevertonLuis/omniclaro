@@ -1,5 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { IsObject, IsOptional, IsString, MinLength } from 'class-validator';
+import { Publico } from '../auth/auth.guard';
 import { NluService } from './nlu.service';
 
 export class ProcessIntentDto {
@@ -16,6 +17,7 @@ export class ProcessIntentDto {
   };
 }
 
+@Publico()
 @Controller('api/v1/nlp')
 export class NluController {
   constructor(private readonly nlu: NluService) {}

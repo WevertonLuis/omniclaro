@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Publico } from '../auth/auth.guard';
 import { MocksService } from './mocks.service';
 
+@Publico()
 @Controller('api/v1/mock')
 export class MocksController {
   constructor(private readonly mocks: MocksService) {}

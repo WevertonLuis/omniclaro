@@ -4,3 +4,4 @@ export * from './mensagem.entity';
 export * from './intencao-extraida.entity';
 export * from './protocolo.entity';
 export * from './atendimento-humano.entity';
+export * from './operador.entity';

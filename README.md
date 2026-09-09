@@ -194,6 +194,40 @@ Os campos marcados com **+** são acréscimos ao schema mínimo, necessários pa
 
 ---
 
+## Autenticação e RBAC
+
+O painel exige login. A autenticação é por **JWT com papéis**, cobrindo o RBAC descrito na seção 8.2 da documentação técnica — sem OAuth corporativo nem MFA, que ficam fora do escopo do protótipo.
+
+| Papel | Acesso |
+|---|---|
+| `OPERADOR` | Fila de chamados, atendimento ao vivo e AI Context Panel |
+| `SUPERVISOR` | Painel de métricas, todas as sessões e desempenho por operador |
+
+**Contas criadas pelo seed:**
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Operador | `mariana.costa@claro.com.br` | `operador123` |
+| Operador | `rafael.lima@claro.com.br` | `operador123` |
+| Supervisor | `supervisor@claro.com.br` | `supervisor123` |
+
+Detalhes de implementação que valem registro:
+
+- **Senhas com `scrypt`** da biblioteca padrão do Node, não bcrypt/argon2 — estes exigem compilação nativa, o mesmo problema que levou o projeto a usar `sql.js` no lugar do `sqlite3`.
+- **Autenticação exigida por padrão.** O `AuthGuard` é global; rotas abertas precisam se declarar com `@Publico()`. Isso evita esquecer de proteger um endpoint novo. São públicos apenas: `/health`, `/webhooks/messages` (o webhook do WhatsApp autentica por assinatura, não por JWT), `/mock/*` e `/nlp/process-intent`.
+- **O WebSocket também autentica.** O token vai no `dashboard:join`, e o nome do operador que assume um chamado vem do JWT — não do payload enviado pelo cliente.
+- **Endpoints do supervisor:** `GET /api/v1/admin/metrics`, `/admin/sessions`, `/admin/operators`, todos com `@Papeis('SUPERVISOR')`. Um operador autenticado recebe `403`.
+
+### Painel do supervisor
+
+Consolida as métricas da seção 9.1 sobre os dados reais da operação: FCR (resolução sem transbordo, meta ≥ 70%), confiança média da IA, taxa de mensagens com múltiplas intenções, espera média no transbordo e CSAT. Traz ainda intenções mais frequentes, canais de origem, situação dos protocolos, tabela de operadores e sessões recentes.
+
+Sobre as cores dos gráficos: as barras de frequência usam **uma única matiz**, porque medem uma só grandeza — cor ali não carrega identidade, e usar várias criaria um problema de daltonismo sem necessidade. Os indicadores de estado (resolvido/escalado) vêm **sempre acompanhados de rótulo textual**, nunca só de cor: o par verde/vermelho tem ΔE 4,2 em deuteranopia, indistinguível para quem tem essa condição.
+
+O CPF permanece mascarado também no painel do supervisor.
+
+---
+
 ## LGPD — mascaramento de CPF
 
 O mockup original do Figma exibia o CPF integral (`412.763.088-94`) no painel do atendente. A documentação do projeto exige mascaramento de dados pessoais, então o protótipo aplica a máscara em **duas camadas**:

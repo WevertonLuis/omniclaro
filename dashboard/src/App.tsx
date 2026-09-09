@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AdminDashboard from './components/AdminDashboard';
 import AiContextPanel from './components/AiContextPanel';
 import CallBar from './components/CallBar';
 import ChatColumn from './components/ChatColumn';
+import LoginScreen from './components/LoginScreen';
 import QueueScreen from './components/QueueScreen';
 import TopBar from './components/TopBar';
 import { buscarFila } from './lib/api';
+import { useAuth } from './lib/auth';
 import { nomeCurto } from './lib/mask';
 import { socket } from './lib/socket';
 import type { HandoffCard, TurnoConversa } from './lib/types';
-
-const OPERADOR = 'Mariana Costa';
 
 const RESPOSTAS_RAPIDAS = [
   'Aguarde um momento, estou verificando.',
@@ -19,24 +20,43 @@ const RESPOSTAS_RAPIDAS = [
 ];
 
 export default function App() {
+  const { operador, token, carregando, sair } = useAuth();
+
+  if (carregando) {
+    return <div className="grid h-full place-items-center text-[13px] text-ink-400">Carregando sessão...</div>;
+  }
+  if (!operador || !token) {
+    return <LoginScreen />;
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      <TopBar operador={operador} onSair={sair} />
+      {operador.papel === 'SUPERVISOR' ? <AdminDashboard /> : <AreaOperador token={token} operador={operador.nome} />}
+    </div>
+  );
+}
+
+// --------------------------- Área do operador ---------------------------
+
+function AreaOperador({ token, operador }: { token: string; operador: string }) {
   const [conectado, setConectado] = useState(socket.connected);
   const [fila, setFila] = useState<HandoffCard[]>([]);
   const [ativo, setAtivo] = useState<HandoffCard | null>(null);
   const [mensagens, setMensagens] = useState<TurnoConversa[]>([]);
   const [digitando, setDigitando] = useState(false);
 
-  /** Espelho do atendimento ativo, legivel de dentro dos handlers do socket. */
+  /** Espelho do atendimento ativo, legível de dentro dos handlers do socket. */
   const ativoRef = useRef<HandoffCard | null>(null);
   useEffect(() => {
     ativoRef.current = ativo;
   }, [ativo]);
 
-  // ------------------------- Ciclo de vida do socket -------------------------
-
+  // O token vai no join: o servidor identifica o operador pelo JWT.
   useEffect(() => {
     function onConnect() {
       setConectado(true);
-      socket.emit('dashboard:join');
+      socket.emit('dashboard:join', { token });
     }
     function onDisconnect() {
       setConectado(false);
@@ -50,16 +70,15 @@ export default function App() {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
     };
-  }, []);
+  }, [token]);
 
   useEffect(() => {
-    buscarFila().then(setFila).catch(() => undefined);
-  }, []);
+    buscarFila(token).then(setFila).catch(() => undefined);
+  }, [token]);
 
   useEffect(() => {
     function onQueue(novaFila: HandoffCard[]) {
       setFila(novaFila);
-      // Mantem o card ativo sincronizado com o estado do servidor.
       setAtivo((atual) => (atual ? (novaFila.find((c) => c.protocolo === atual.protocolo) ?? atual) : atual));
     }
 
@@ -68,9 +87,9 @@ export default function App() {
     }
 
     function onMensagem(m: TurnoConversa & { sessionId: string }) {
-      // A sessao ativa vem de um ref, nao de dentro de um updater de estado:
+      // A sessão ativa vem de um ref, não de dentro de um updater de estado:
       // o React invoca updaters duas vezes em modo estrito, e disparar
-      // setMensagens la dentro duplicava cada mensagem recebida.
+      // setMensagens lá dentro duplicava cada mensagem recebida.
       const atual = ativoRef.current;
       if (!atual || m.sessionId !== atual.sessionId) return;
       setMensagens((lista) => [...lista, m]);
@@ -88,11 +107,9 @@ export default function App() {
     };
   }, []);
 
-  // ------------------------------- Acoes -------------------------------
-
   const assumir = useCallback((card: HandoffCard) => {
-    socket.emit('agent:accept', { protocolo: card.protocolo, operador: OPERADOR }, (atualizado: HandoffCard) => {
-      const alvo = atualizado ?? card;
+    socket.emit('agent:accept', { protocolo: card.protocolo }, (atualizado: HandoffCard) => {
+      const alvo = atualizado?.protocolo ? atualizado : card;
       setAtivo(alvo);
       setMensagens(alvo.conversa ?? []);
     });
@@ -101,7 +118,7 @@ export default function App() {
   const enviar = useCallback(
     (texto: string) => {
       if (!ativo) return;
-      socket.emit('agent:message', { sessionId: ativo.sessionId, texto, operador: OPERADOR });
+      socket.emit('agent:message', { sessionId: ativo.sessionId, texto });
       setDigitando(true);
       setTimeout(() => setDigitando(false), 4000);
     },
@@ -117,38 +134,24 @@ export default function App() {
 
   const nomeCliente = useMemo(() => (ativo ? nomeCurto(ativo.cliente.nome) : ''), [ativo]);
 
-  // ------------------------------- Render -------------------------------
+  if (!ativo) {
+    return <QueueScreen fila={fila} conectado={conectado} onAssumir={assumir} />;
+  }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <TopBar operador={OPERADOR} conectado={conectado} />
-
-      {!ativo ? (
-        <QueueScreen fila={fila} conectado={conectado} onAssumir={assumir} />
-      ) : (
-        <>
-          <CallBar card={ativo} onEncerrar={encerrar} />
-          <div className="flex min-h-0 flex-1">
-            <ChatColumn
-              operador={OPERADOR}
-              nomeCliente={nomeCliente}
-              mensagens={mensagens}
-              digitando={digitando}
-              respostasRapidas={RESPOSTAS_RAPIDAS}
-              onEnviar={enviar}
-            />
-            <AiContextPanel card={ativo} />
-          </div>
-        </>
-      )}
-
-      <button
-        type="button"
-        title="Ajuda"
-        className="fixed bottom-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-ink-900 text-[13px] font-bold text-white shadow-lg transition hover:bg-ink-700"
-      >
-        ?
-      </button>
-    </div>
+    <>
+      <CallBar card={ativo} onEncerrar={encerrar} />
+      <div className="flex min-h-0 flex-1">
+        <ChatColumn
+          operador={operador}
+          nomeCliente={nomeCliente}
+          mensagens={mensagens}
+          digitando={digitando}
+          respostasRapidas={RESPOSTAS_RAPIDAS}
+          onEnviar={enviar}
+        />
+        <AiContextPanel card={ativo} />
+      </div>
+    </>
   );
 }

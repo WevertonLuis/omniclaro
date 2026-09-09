@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { Publico } from './auth/auth.guard';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from './config/configuration';
 import { NluService } from './nlu/nlu.service';
@@ -13,6 +14,7 @@ export class AppController {
   ) {}
 
   /** Sanidade da stack: qual driver de banco, cache e se o Gemini esta ativo. */
+  @Publico()
   @Get('health')
   health() {
     const db = this.config.get<AppConfig['db']>('db');

@@ -8,13 +8,20 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
+import { PayloadToken } from '../auth/auth.service';
 import { ConversationService } from '../conversation/conversation.service';
 import { SessionService } from '../session/session.service';
 import { HandoffService } from '../handoff/handoff.service';
 
 export const ROOM_DASHBOARD = 'dashboard';
 export const roomSessao = (sessionId: string) => `session:${sessionId}`;
+
+/** Socket com o operador autenticado anexado apos dashboard:join. */
+interface SocketOperador extends Socket {
+  operador?: PayloadToken;
+}
 
 @WebSocketGateway({ cors: { origin: true, credentials: true } })
 export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -26,8 +33,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   constructor(
     private readonly conversation: ConversationService,
     private readonly sessions: SessionService,
+    private readonly jwt: JwtService,
     @Inject(forwardRef(() => HandoffService)) private readonly handoff: HandoffService,
   ) {}
+
+  /** Le o token enviado no dashboard:join. Sem token valido, nada de sala. */
+  private autenticar(client: SocketOperador, token?: string): PayloadToken | null {
+    if (!token) return null;
+    try {
+      const payload = this.jwt.verify<PayloadToken>(token);
+      client.operador = payload;
+      return payload;
+    } catch {
+      return null;
+    }
+  }
 
   handleConnection(client: Socket) {
     this.logger.log(`Socket conectado: ${client.id}`);
@@ -40,11 +60,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   // ------------------------- Entrada nas salas -------------------------
 
   @SubscribeMessage('dashboard:join')
-  async dashboardJoin(@ConnectedSocket() client: Socket) {
+  async dashboardJoin(@ConnectedSocket() client: SocketOperador, @MessageBody() body?: { token?: string }) {
+    const operador = this.autenticar(client, body?.token);
+    if (!operador) return { ok: false, erro: 'Token ausente ou invalido.' };
+
     client.join(ROOM_DASHBOARD);
     const fila = await this.handoff.listarFila();
     client.emit('queue:update', fila);
-    return { ok: true, sala: ROOM_DASHBOARD, fila: fila.length };
+    this.logger.log(`${operador.nome} (${operador.papel}) entrou no painel`);
+    return { ok: true, sala: ROOM_DASHBOARD, fila: fila.length, operador: operador.nome };
   }
 
   @SubscribeMessage('customer:join')
@@ -57,8 +81,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   // ----------------------- Acoes do atendente --------------------------
 
   @SubscribeMessage('agent:accept')
-  async agentAccept(@MessageBody() body: { protocolo: string; operador?: string }) {
-    const card = await this.handoff.assumir(body.protocolo, body.operador ?? 'Mariana Costa');
+  async agentAccept(@ConnectedSocket() client: SocketOperador, @MessageBody() body: { protocolo: string }) {
+    // O nome vem do token, nao do payload: o cliente nao escolhe quem assumiu.
+    if (!client.operador) return { ok: false, erro: 'Nao autenticado.' };
+    const card = await this.handoff.assumir(body.protocolo, client.operador.nome);
     this.emitirFila();
     this.server.to(roomSessao(card.sessionId)).emit('session:status', {
       sessionId: card.sessionId,
@@ -76,7 +102,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   @SubscribeMessage('agent:message')
-  async agentMessage(@MessageBody() body: { sessionId: string; texto: string; operador?: string }) {
+  async agentMessage(@ConnectedSocket() client: SocketOperador, @MessageBody() body: { sessionId: string; texto: string }) {
+    if (!client.operador) return { ok: false, erro: 'Nao autenticado.' };
     if (!body?.sessionId || !body?.texto?.trim()) return { ok: false };
 
     await this.conversation.registrarMensagem(body.sessionId, 'ATENDENTE', body.texto);
@@ -94,7 +121,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       remetente: 'ATENDENTE' as const,
       texto: body.texto,
       timestamp: new Date().toISOString(),
-      operador: body.operador ?? 'Mariana Costa',
+      operador: client.operador.nome,
     };
     this.server.to(roomSessao(body.sessionId)).emit('message:new', payload);
     this.server.to(ROOM_DASHBOARD).emit('message:new', payload);
@@ -102,7 +129,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   @SubscribeMessage('agent:close')
-  async agentClose(@MessageBody() body: { sessionId: string; protocolo?: string }) {
+  async agentClose(@ConnectedSocket() client: SocketOperador, @MessageBody() body: { sessionId: string; protocolo?: string }) {
+    if (!client.operador) return { ok: false, erro: 'Nao autenticado.' };
     await this.handoff.encerrar(body.sessionId, body.protocolo);
     this.emitirFila();
     this.server.to(roomSessao(body.sessionId)).emit('session:status', {

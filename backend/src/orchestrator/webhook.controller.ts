@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { IsIn, IsInt, IsOptional, IsString, MinLength } from 'class-validator';
+import { Publico } from '../auth/auth.guard';
 import { CanalOrigem } from '../database/entities';
 import { OrchestratorService } from './orchestrator.service';
 
@@ -25,6 +26,7 @@ export class InboundMessageDto {
   clienteId?: number;
 }
 
+@Publico()
 @Controller('api/v1/webhooks')
 export class WebhookController {
   constructor(private readonly orchestrator: OrchestratorService) {}

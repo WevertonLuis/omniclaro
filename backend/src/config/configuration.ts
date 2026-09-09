@@ -25,6 +25,10 @@ export interface AppConfig {
     /** 'low' | 'high' nos modelos Gemini 3.x; vazio omite o campo. */
     thinkingLevel: string;
   };
+  auth: {
+    jwtSecret: string;
+    jwtExpiraEm: string;
+  };
   handoffConfidenceThreshold: number;
 }
 
@@ -53,6 +57,11 @@ export default (): AppConfig => ({
     apiKey: process.env.GEMINI_API_KEY ?? '',
     model: process.env.GEMINI_MODEL ?? 'gemini-3.6-flash',
     thinkingLevel: (process.env.GEMINI_THINKING_LEVEL ?? 'low').trim(),
+  },
+  auth: {
+    // Segredo de demonstracao. Em producao viria de um cofre (Secrets Manager).
+    jwtSecret: process.env.JWT_SECRET ?? 'omniclaro-prototipo-fiap-4sis',
+    jwtExpiraEm: process.env.JWT_EXPIRA_EM ?? '8h',
   },
   handoffConfidenceThreshold: parseFloat(process.env.HANDOFF_CONFIDENCE_THRESHOLD ?? '0.80'),
 });
