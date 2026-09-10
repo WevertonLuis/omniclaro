@@ -111,6 +111,23 @@ docker compose up --build
 
 O compose já injeta `DB_DRIVER=postgres` e `CACHE_DRIVER=redis` no backend — o mesmo código roda nos dois modos, sem alteração.
 
+### Pelo navegador — GitHub Codespaces
+
+Roda o projeto inteiro numa máquina na nuvem, sem instalar nada. Útil para apresentar de um computador que não é o seu.
+
+1. No repositório, **Code → Codespaces → ⋯ → New with options**.
+2. Escolha a branch e, no campo **GEMINI_API_KEY**, cole sua chave. Ela fica guardada como segredo da sua conta, nunca no repositório.
+3. **Create codespace.** A primeira criação leva de 2 a 3 minutos (instala as dependências).
+4. Os três serviços sobem sozinhos num terminal. Na aba **Ports**, abra **OmniDashboard** (5173) e **Chat do cliente** (5174).
+
+Para voltar depois, de qualquer computador: entre em [github.com/codespaces](https://github.com/codespaces) e abra o codespace existente. Ele é retomado em segundos.
+
+Algumas observações:
+
+- **Portas privadas por padrão.** Só abre para quem estiver logado na sua conta do GitHub. Para outra pessoa acessar pelo próprio aparelho, clique com o botão direito na porta → **Port Visibility → Public**.
+- **Desliga sozinho após 30 minutos sem uso**, e o banco persiste entre as sessões. O plano gratuito de conta pessoal cobre 60 horas por mês numa máquina de 2 núcleos; pare o codespace ao terminar para não gastar a cota.
+- A configuração está em `.devcontainer/devcontainer.json`. O ajuste nos `vite.config.ts` libera o domínio `*.app.github.dev` só quando a variável `CODESPACES` está presente; localmente, o comportamento não muda.
+
 ---
 
 ## Roteiro de demonstração (3 minutos)

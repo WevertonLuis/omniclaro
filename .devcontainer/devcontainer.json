@@ -1,0 +1,34 @@
+{
+  // Ambiente do GitHub Codespaces: roda o OmniClaro inteiro na nuvem,
+  // acessivel por qualquer navegador, sem instalar Node na maquina local.
+  "name": "OmniClaro",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+
+  // A chave nunca vai para o repositorio. O Codespaces pede o valor na tela
+  // de criacao e o injeta como variavel de ambiente, que o backend ja le.
+  "secrets": {
+    "GEMINI_API_KEY": {
+      "description": "Chave do Google AI Studio para o motor de NLU. Sem ela o sistema roda com o extrator heuristico de fallback.",
+      "documentationUrl": "https://aistudio.google.com/app/apikey"
+    }
+  },
+
+  "postCreateCommand": "npm install",
+
+  // Sobe os tres servicos ao abrir o Codespaces. O teste do /health evita
+  // subir uma segunda copia quando o ambiente e aberto em outra aba.
+  "postAttachCommand": "curl -s -o /dev/null http://localhost:3000/api/v1/health || npm run dev",
+
+  "forwardPorts": [5174, 5173, 3000],
+  "portsAttributes": {
+    "5174": { "label": "Chat do cliente", "onAutoForward": "notify" },
+    "5173": { "label": "OmniDashboard", "onAutoForward": "openBrowser" },
+    "3000": { "label": "Orquestrador (API)", "onAutoForward": "silent" }
+  },
+
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["README.md"]
+    }
+  }
+}
