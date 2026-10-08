@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { formatTelefone, maskCpf } from '../common/mask.util';
 import { ConversationService } from '../conversation/conversation.service';
 import { AtendimentoHumano } from '../database/entities';
@@ -24,6 +25,7 @@ export class HandoffService {
     @InjectRepository(AtendimentoHumano) private readonly atendimentos: Repository<AtendimentoHumano>,
     private readonly conversation: ConversationService,
     private readonly sessions: SessionService,
+    private readonly auditoria: AuditoriaService,
     @Inject(forwardRef(() => RealtimeGateway)) private readonly gateway: RealtimeGateway,
   ) {}
 
@@ -66,6 +68,12 @@ export class HandoffService {
     const card = await this.montarCard(registro, contexto, nlu, motivo);
     this.gateway.emitirHandoff(card);
     this.logger.log(`Transbordo enfileirado: protocolo ${protocolo} (motivo: ${motivo})`);
+    await this.auditoria.registrar({
+      acao: 'TRANSBORDO_ENFILEIRADO',
+      ator: 'SISTEMA',
+      recurso: protocolo,
+      detalhe: { motivo, sessionId: contexto.sessionId, canal: contexto.canal },
+    });
     return card;
   }
 
@@ -96,10 +104,17 @@ export class HandoffService {
 
     const contexto = await this.sessions.obterPorSessao(registro.id_sessao);
     this.logger.log(`${operador} assumiu o protocolo ${protocolo} apos ${espera}s de espera`);
+    await this.auditoria.registrar({
+      acao: 'ATENDIMENTO_ASSUMIDO',
+      ator: operador,
+      papel: 'OPERADOR',
+      recurso: protocolo,
+      detalhe: { tempoEsperaSegundos: espera },
+    });
     return this.montarCard(registro, contexto);
   }
 
-  async encerrar(sessionId: string, protocolo?: string): Promise<void> {
+  async encerrar(sessionId: string, protocolo?: string, operador?: string): Promise<{ protocolo: string | null }> {
     const registro = protocolo
       ? await this.atendimentos.findOne({ where: { numero_protocolo: protocolo } })
       : await this.atendimentos.findOne({ where: { id_sessao: sessionId } });
@@ -108,6 +123,12 @@ export class HandoffService {
       registro.status = 'ENCERRADO';
       await this.atendimentos.save(registro);
       await this.conversation.atualizarStatusProtocolo(registro.numero_protocolo, 'RESOLVIDO');
+      await this.auditoria.registrar({
+        acao: 'ATENDIMENTO_ENCERRADO',
+        ator: operador ?? registro.id_operador ?? 'SISTEMA',
+        papel: 'OPERADOR',
+        recurso: registro.numero_protocolo,
+      });
     }
     await this.conversation.atualizarStatusSessao(sessionId, 'ENCERRADA');
     const contexto = await this.sessions.obterPorSessao(sessionId);
@@ -115,6 +136,33 @@ export class HandoffService {
       contexto.status = 'ENCERRADA';
       await this.sessions.salvar(contexto);
     }
+    return { protocolo: registro?.numero_protocolo ?? null };
+  }
+
+  /**
+   * Registra a nota do cliente (1 a 5) no atendimento humano.
+   * Chamado pelo chat, que nao e autenticado — por isso a nota so e aceita para
+   * um protocolo existente, ja encerrado, e apenas uma vez.
+   */
+  async avaliar(protocolo: string, nota: number): Promise<{ ok: boolean; motivo?: string }> {
+    const registro = await this.atendimentos.findOne({ where: { numero_protocolo: protocolo } });
+    if (!registro) return { ok: false, motivo: 'Protocolo nao encontrado.' };
+    if (registro.avaliacao_csat !== null && registro.avaliacao_csat !== undefined) {
+      return { ok: false, motivo: 'Este atendimento ja foi avaliado.' };
+    }
+
+    registro.avaliacao_csat = nota;
+    await this.atendimentos.save(registro);
+
+    await this.auditoria.registrar({
+      acao: 'AVALIACAO_CSAT',
+      ator: 'CLIENTE',
+      recurso: protocolo,
+      detalhe: { nota, operador: registro.id_operador },
+    });
+
+    this.logger.log(`CSAT ${nota}/5 registrado no protocolo ${protocolo}`);
+    return { ok: true };
   }
 
   // -------------------------- Montagem do card --------------------------

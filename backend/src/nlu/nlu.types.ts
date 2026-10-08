@@ -135,5 +135,9 @@ export interface ResultadoNlu {
   requer_humano: boolean;
   /** GEMINI | FALLBACK_HEURISTICO - rastreia a origem da inferencia. */
   fonte: 'GEMINI' | 'FALLBACK_HEURISTICO';
+  /** true quando a sanitizacao reconheceu tentativa de injecao de prompt. */
+  entrada_suspeita?: boolean;
+  /** Padroes reconhecidos pela sanitizacao, para auditoria. */
+  padroes_sanitizacao?: string[];
   latencia_ms: number;
 }

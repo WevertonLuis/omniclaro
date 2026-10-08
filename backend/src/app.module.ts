@@ -5,6 +5,7 @@ import configuration from './config/configuration';
 import { AppController } from './app.controller';
 import { AdminModule } from './admin/admin.module';
 import { AuthGuard } from './auth/auth.guard';
+import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
 import { CacheModule } from './cache/cache.module';
 import { ConversationModule } from './conversation/conversation.module';
@@ -22,6 +23,7 @@ import { SessionModule } from './session/session.module';
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env', '../.env'] }),
     DatabaseModule,
     CacheModule,
+    AuditoriaModule,
     AuthModule,
     ConversationModule,
     SessionModule,

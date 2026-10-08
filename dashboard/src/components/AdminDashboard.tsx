@@ -16,6 +16,22 @@ interface Fatia {
   percentual: number;
 }
 
+interface RegistroAuditoria {
+  id: number;
+  acao: string;
+  ator: string;
+  papel: string;
+  ipOrigem: string;
+  recurso: string;
+  detalhe: Record<string, unknown> | null;
+  timestamp: string;
+}
+
+interface Trilha {
+  total: number;
+  registros: RegistroAuditoria[];
+}
+
 interface Metricas {
   kpis: Kpi[];
   volumetria: Record<string, number>;
@@ -58,6 +74,7 @@ export default function AdminDashboard() {
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [sessoes, setSessoes] = useState<SessaoResumo[]>([]);
   const [operadores, setOperadores] = useState<OperadorResumo[]>([]);
+  const [trilha, setTrilha] = useState<Trilha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,15 +83,17 @@ export default function AdminDashboard() {
 
     async function carregar() {
       try {
-        const [m, s, o] = await Promise.all([
+        const [m, s, o, a] = await Promise.all([
           buscarComToken<Metricas>('/api/v1/admin/metrics', token),
           buscarComToken<SessaoResumo[]>('/api/v1/admin/sessions', token),
           buscarComToken<OperadorResumo[]>('/api/v1/admin/operators', token),
+          buscarComToken<Trilha>('/api/v1/admin/audit?limite=40', token),
         ]);
         if (!vivo) return;
         setMetricas(m);
         setSessoes(s);
         setOperadores(o);
+        setTrilha(a);
         setErro(null);
       } catch {
         if (vivo) setErro('Nao foi possivel carregar as metricas.');
@@ -164,6 +183,7 @@ export default function AdminDashboard() {
 
         <TabelaOperadores operadores={operadores} />
         <TabelaSessoes sessoes={sessoes} />
+        <TabelaAuditoria trilha={trilha} />
       </div>
     </div>
   );
@@ -333,4 +353,82 @@ function rotuloStatus(status: string): string {
     ENCERRADA: 'Encerrada',
   };
   return mapa[status] ?? status;
+}
+
+// --------------------------- Trilha de auditoria ---------------------------
+
+/**
+ * Registro imutavel de acesso e acao (secao 8.2 da documentacao).
+ * Cores so acompanham o rotulo textual, nunca o substituem.
+ */
+const TOM_ACAO: Record<string, string> = {
+  LOGIN_FALHA: 'border-rose-200 bg-rose-50 text-rose-700',
+  ENTRADA_SUSPEITA: 'border-rose-200 bg-rose-50 text-rose-700',
+  LOGIN_SUCESSO: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  AVALIACAO_CSAT: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  TRANSBORDO_ENFILEIRADO: 'border-amber-200 bg-amber-50 text-amber-700',
+};
+
+function TabelaAuditoria({ trilha }: { trilha: Trilha | null }) {
+  if (!trilha) return null;
+
+  return (
+    <section className="mt-4 rounded-xl bg-white p-4 shadow-card">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-[13px] font-semibold text-ink-900">Trilha de auditoria</h2>
+        <span className="text-[11px] text-ink-400">
+          {trilha.registros.length} de {trilha.total} registros
+        </span>
+      </div>
+      <p className="mt-0.5 text-[11.5px] text-ink-500">
+        Registro imutável de login, consulta e transbordo, com IP de origem — exigência de LGPD (seção 8.2).
+      </p>
+
+      <div className="mt-3 max-h-80 overflow-auto">
+        <table className="w-full min-w-[640px] text-left">
+          <thead className="sticky top-0 bg-white">
+            <tr className="border-b border-hair text-[10.5px] uppercase tracking-wide text-ink-500">
+              <th className="pb-2 font-semibold">Quando</th>
+              <th className="pb-2 font-semibold">Ação</th>
+              <th className="pb-2 font-semibold">Ator</th>
+              <th className="pb-2 font-semibold">Origem</th>
+              <th className="pb-2 font-semibold">Recurso</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trilha.registros.map((r) => (
+              <tr key={r.id} className="border-b border-hair last:border-0">
+                <td className="whitespace-nowrap py-2 text-[11.5px] tabular-nums text-ink-500">
+                  {new Date(r.timestamp).toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </td>
+                <td className="py-2">
+                  <span
+                    className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${
+                      TOM_ACAO[r.acao] ?? 'border-hair bg-canvas text-ink-700'
+                    }`}
+                  >
+                    {r.acao}
+                  </span>
+                </td>
+                <td className="py-2 text-[11.5px] text-ink-900">
+                  {r.ator}
+                  {r.papel !== '—' && <span className="ml-1 text-[10px] text-ink-400">({r.papel})</span>}
+                </td>
+                <td className="py-2 font-mono text-[10.5px] text-ink-500">{r.ipOrigem}</td>
+                <td className="py-2 font-mono text-[10.5px] text-ink-500" title={JSON.stringify(r.detalhe)}>
+                  {r.recurso}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }

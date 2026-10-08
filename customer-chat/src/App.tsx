@@ -31,7 +31,39 @@ export default function App() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [digitando, setDigitando] = useState(false);
   const [emAtendimento, setEmAtendimento] = useState(false);
+  /** Protocolo aguardando nota; null quando nao ha pesquisa aberta. */
+  const [protocoloAvaliar, setProtocoloAvaliar] = useState<string | null>(null);
+  const [notaEnviada, setNotaEnviada] = useState<number | null>(null);
   const fim = useRef<HTMLDivElement>(null);
+
+  async function avaliar(nota: number) {
+    if (!protocoloAvaliar) return;
+    setNotaEnviada(nota);
+    try {
+      const r = await fetch(`/api/v1/handoff/queue/${protocoloAvaliar}/csat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nota }),
+      });
+      const j = await r.json();
+      setBolhas((b) => [
+        ...b,
+        {
+          remetente: 'BOT',
+          texto: j?.ok
+            ? 'Obrigado pela avaliacao! Ela ajuda a gente a melhorar o atendimento.'
+            : (j?.motivo ?? 'Nao consegui registrar sua avaliacao.'),
+          hora: agora(),
+        },
+      ]);
+    } catch {
+      setNotaEnviada(null);
+      setBolhas((b) => [
+        ...b,
+        { remetente: 'BOT', texto: 'Nao consegui registrar sua avaliacao agora.', hora: agora() },
+      ]);
+    }
+  }
 
   useEffect(() => {
     fim.current?.scrollIntoView({ behavior: 'smooth' });
@@ -51,10 +83,25 @@ export default function App() {
       setEmAtendimento(true);
     }
 
-    function onStatus(s: { sessionId: string; status: string; operador?: string }) {
+    function onStatus(s: { sessionId: string; status: string; operador?: string; protocolo?: string }) {
       if (s.sessionId !== sessionId) return;
       setEmAtendimento(s.status === 'EM_ATENDIMENTO');
-      if (s.status === 'ENCERRADA') setEmAtendimento(false);
+      if (s.status === 'ENCERRADA') {
+        setEmAtendimento(false);
+        setQuickReplies([]);
+        // O atendente encerrou: abre a pesquisa de satisfacao do protocolo.
+        if (s.protocolo) {
+          setProtocoloAvaliar(s.protocolo);
+          setBolhas((b) => [
+            ...b,
+            {
+              remetente: 'BOT',
+              texto: `Atendimento encerrado${s.operador ? ` por ${s.operador}` : ''}. Protocolo ${s.protocolo}.`,
+              hora: agora(),
+            },
+          ]);
+        }
+      }
     }
 
     socket.on('message:new', onMensagem);
@@ -104,6 +151,8 @@ export default function App() {
     setQuickReplies([]);
     setSessionId(null);
     setEmAtendimento(false);
+    setProtocoloAvaliar(null);
+    setNotaEnviada(null);
   }
 
   return (
@@ -184,8 +233,43 @@ export default function App() {
         <div ref={fim} />
       </div>
 
+      {/* Pesquisa de satisfacao, aberta quando o atendente encerra */}
+      {protocoloAvaliar && (
+        <div className="shrink-0 border-t border-hair bg-white px-3 py-3">
+          <p className="text-center text-[12px] font-medium text-ink-900">
+            Como foi seu atendimento?
+          </p>
+          <p className="mt-0.5 text-center text-[10.5px] text-ink-400">
+            Protocolo {protocoloAvaliar}
+          </p>
+          <div className="mt-2.5 flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => avaliar(n)}
+                disabled={notaEnviada !== null}
+                aria-label={`Nota ${n} de 5`}
+                className={`grid h-10 w-10 place-items-center rounded-full border text-[14px] font-bold transition ${
+                  notaEnviada === n
+                    ? 'border-claro-red bg-claro-red text-white'
+                    : notaEnviada !== null
+                      ? 'border-hair bg-canvas text-ink-400'
+                      : 'border-hair bg-white text-ink-700 hover:border-claro-red hover:text-claro-red'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-center text-[10px] text-ink-400">
+            {notaEnviada !== null ? 'Avaliacao registrada. Obrigado!' : '1 = muito ruim · 5 = muito bom'}
+          </p>
+        </div>
+      )}
+
       {/* Quick replies */}
-      {quickReplies.length > 0 && (
+      {!protocoloAvaliar && quickReplies.length > 0 && (
         <div className="flex shrink-0 gap-2 overflow-x-auto bg-[#ECE5DD] px-3 pb-2">
           {quickReplies.map((q) => (
             <button

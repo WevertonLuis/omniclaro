@@ -5,3 +5,4 @@ export * from './intencao-extraida.entity';
 export * from './protocolo.entity';
 export * from './atendimento-humano.entity';
 export * from './operador.entity';
+export * from './registro-auditoria.entity';

@@ -131,13 +131,16 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   @SubscribeMessage('agent:close')
   async agentClose(@ConnectedSocket() client: SocketOperador, @MessageBody() body: { sessionId: string; protocolo?: string }) {
     if (!client.operador) return { ok: false, erro: 'Nao autenticado.' };
-    await this.handoff.encerrar(body.sessionId, body.protocolo);
+    const { protocolo } = await this.handoff.encerrar(body.sessionId, body.protocolo, client.operador.nome);
     this.emitirFila();
+    // O protocolo vai junto para o chat saber em qual atendimento gravar a nota.
     this.server.to(roomSessao(body.sessionId)).emit('session:status', {
       sessionId: body.sessionId,
       status: 'ENCERRADA',
+      protocolo,
+      operador: client.operador.nome,
     });
-    return { ok: true };
+    return { ok: true, protocolo };
   }
 
   // --------------------- Emissores usados pelo dominio ------------------

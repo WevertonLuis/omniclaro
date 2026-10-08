@@ -19,8 +19,8 @@ export class AuthController {
   @Publico()
   @Post('login')
   @HttpCode(200)
-  login(@Body() dto: LoginDto) {
-    return this.auth.autenticar(dto.email, dto.senha);
+  login(@Body() dto: LoginDto, @Req() req: RequisicaoAutenticada) {
+    return this.auth.autenticar(dto.email, dto.senha, req.ip);
   }
 
   /** Devolve o operador do token. Usado pelo front para restaurar a sessao. */

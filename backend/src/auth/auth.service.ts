@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Operador, PapelOperador } from '../database/entities';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { conferirSenha, gerarHash } from './senha.util';
 
 export interface PayloadToken {
@@ -31,16 +32,28 @@ export class AuthService {
   constructor(
     @InjectRepository(Operador) private readonly operadores: Repository<Operador>,
     private readonly jwt: JwtService,
+    private readonly auditoria: AuditoriaService,
   ) {}
 
-  async autenticar(email: string, senha: string): Promise<RespostaLogin> {
+  async autenticar(email: string, senha: string, ipOrigem?: string): Promise<RespostaLogin> {
     const operador = await this.operadores.findOne({ where: { email: (email ?? '').trim().toLowerCase() } });
 
     // Mensagem unica para credencial errada e usuario inexistente: nao entrega
     // ao atacante a informacao de quais e-mails existem na base.
     const generico = new UnauthorizedException('E-mail ou senha invalidos.');
-    if (!operador || !operador.ativo) throw generico;
-    if (!(await conferirSenha(senha ?? '', operador.senha_hash))) throw generico;
+    const recusar = async (motivo: string) => {
+      await this.auditoria.registrar({
+        acao: 'LOGIN_FALHA',
+        ator: (email ?? '(vazio)').trim().toLowerCase(),
+        ipOrigem,
+        detalhe: { motivo },
+      });
+      throw generico;
+    };
+
+    if (!operador) await recusar('operador inexistente');
+    if (!operador.ativo) await recusar('operador inativo');
+    if (!(await conferirSenha(senha ?? '', operador.senha_hash))) await recusar('senha incorreta');
 
     const payload: PayloadToken = {
       sub: operador.id,
@@ -50,6 +63,12 @@ export class AuthService {
     };
 
     this.logger.log(`Login: ${operador.email} (${operador.papel})`);
+    await this.auditoria.registrar({
+      acao: 'LOGIN_SUCESSO',
+      ator: operador.email,
+      papel: operador.papel,
+      ipOrigem,
+    });
 
     return {
       accessToken: await this.jwt.signAsync(payload),

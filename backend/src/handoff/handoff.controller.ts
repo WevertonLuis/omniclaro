@@ -1,5 +1,6 @@
-import { Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
-import { IsOptional, IsString } from 'class-validator';
+import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post } from '@nestjs/common';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Publico } from '../auth/auth.guard';
 import { SessionService } from '../session/session.service';
 import { HandoffService } from './handoff.service';
 
@@ -17,6 +18,13 @@ export class AcceptHandoffDto {
   @IsOptional()
   @IsString()
   operador?: string;
+}
+
+export class AvaliacaoDto {
+  @IsInt({ message: 'a nota precisa ser um numero inteiro' })
+  @Min(1, { message: 'a nota vai de 1 a 5' })
+  @Max(5, { message: 'a nota vai de 1 a 5' })
+  nota: number;
 }
 
 @Controller('api/v1/handoff')
@@ -46,5 +54,17 @@ export class HandoffController {
   @Post('queue/:protocolo/accept')
   aceitar(@Param('protocolo') protocolo: string, @Body() dto: AcceptHandoffDto) {
     return this.handoff.assumir(protocolo, dto?.operador ?? 'Mariana Costa');
+  }
+
+  /**
+   * Avaliacao do cliente ao fim do atendimento humano.
+   * Rota publica porque o chat do cliente nao e autenticado — a protecao vem
+   * de exigir um protocolo existente e aceitar uma unica nota por atendimento.
+   */
+  @Publico()
+  @Post('queue/:protocolo/csat')
+  @HttpCode(200)
+  avaliar(@Param('protocolo') protocolo: string, @Body() dto: AvaliacaoDto) {
+    return this.handoff.avaliar(protocolo, dto.nota);
   }
 }
