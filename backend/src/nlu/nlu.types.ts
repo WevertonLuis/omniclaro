@@ -38,19 +38,79 @@ export type Acao = (typeof ACOES)[number];
  * A relacao e fixa e conhecida — deixar o Gemini adivinhar so abriria espaco
  * para alucinacao num campo que decide o despacho.
  */
-export const CATALOGO_INTENCOES: Record<NomeIntencao, { domain: Dominio; requiresAction: Acao }> = {
-  SUPORTE_TECNICO_INSTABILIDADE: { domain: 'SUPPORT', requiresAction: 'DIAGNOSE_NETWORK' },
-  SUPORTE_TECNICO_SEM_CONEXAO: { domain: 'SUPPORT', requiresAction: 'DIAGNOSE_NETWORK' },
-  SUPORTE_TECNICO_LENTIDAO: { domain: 'SUPPORT', requiresAction: 'DIAGNOSE_NETWORK' },
-  CONTRATACAO_SERVICO_STREAMING: { domain: 'SALES', requiresAction: 'FETCH_OFFERS' },
-  CONSULTA_OFERTAS: { domain: 'SALES', requiresAction: 'FETCH_OFFERS' },
-  CONFIRMACAO_CONTRATACAO: { domain: 'SALES', requiresAction: 'ACTIVATE_OFFER' },
-  CONSULTA_FATURA: { domain: 'BILLING', requiresAction: 'FETCH_INVOICE' },
-  SEGUNDA_VIA_FATURA: { domain: 'BILLING', requiresAction: 'FETCH_INVOICE' },
-  FALAR_COM_ATENDENTE: { domain: 'GENERAL', requiresAction: 'ESCALATE_HUMAN' },
-  CANCELAMENTO: { domain: 'GENERAL', requiresAction: 'ESCALATE_HUMAN' },
-  SAUDACAO: { domain: 'GENERAL', requiresAction: 'NONE' },
-  OUTROS: { domain: 'GENERAL', requiresAction: 'NONE' },
+export interface MetaIntencao {
+  domain: Dominio;
+  requiresAction: Acao;
+  /** Como a intencao aparece dentro da pergunta de desambiguacao. */
+  rotulo: string | null;
+  /** Texto do botao de resposta rapida. Precisa reclassificar com alta confianca. */
+  atalho: string | null;
+}
+
+export const CATALOGO_INTENCOES: Record<NomeIntencao, MetaIntencao> = {
+  SUPORTE_TECNICO_INSTABILIDADE: {
+    domain: 'SUPPORT',
+    requiresAction: 'DIAGNOSE_NETWORK',
+    rotulo: 'a internet de casa caindo',
+    atalho: 'Minha internet esta caindo',
+  },
+  SUPORTE_TECNICO_SEM_CONEXAO: {
+    domain: 'SUPPORT',
+    requiresAction: 'DIAGNOSE_NETWORK',
+    rotulo: 'a internet de casa sem conexao',
+    atalho: 'Estou sem internet',
+  },
+  SUPORTE_TECNICO_LENTIDAO: {
+    domain: 'SUPPORT',
+    requiresAction: 'DIAGNOSE_NETWORK',
+    rotulo: 'a internet de casa lenta',
+    atalho: 'Minha internet esta lenta',
+  },
+  CONTRATACAO_SERVICO_STREAMING: {
+    domain: 'SALES',
+    requiresAction: 'FETCH_OFFERS',
+    rotulo: 'contratar um pacote de streaming',
+    atalho: 'Quero um pacote de streaming',
+  },
+  CONSULTA_OFERTAS: {
+    domain: 'SALES',
+    requiresAction: 'FETCH_OFFERS',
+    rotulo: 'ver ofertas e planos',
+    atalho: 'Ver ofertas de streaming',
+  },
+  CONFIRMACAO_CONTRATACAO: {
+    domain: 'SALES',
+    requiresAction: 'ACTIVATE_OFFER',
+    rotulo: 'confirmar uma contratacao',
+    atalho: 'Confirmar contratacao',
+  },
+  CONSULTA_FATURA: {
+    domain: 'BILLING',
+    requiresAction: 'FETCH_INVOICE',
+    rotulo: 'a sua fatura',
+    atalho: 'Ver minha fatura',
+  },
+  SEGUNDA_VIA_FATURA: {
+    domain: 'BILLING',
+    requiresAction: 'FETCH_INVOICE',
+    rotulo: 'a segunda via da fatura',
+    atalho: 'Segunda via da fatura',
+  },
+  FALAR_COM_ATENDENTE: {
+    domain: 'GENERAL',
+    requiresAction: 'ESCALATE_HUMAN',
+    rotulo: 'falar com um atendente',
+    atalho: 'Falar com atendente',
+  },
+  CANCELAMENTO: {
+    domain: 'GENERAL',
+    requiresAction: 'ESCALATE_HUMAN',
+    rotulo: 'cancelamento',
+    atalho: 'Quero cancelar',
+  },
+  // Saudacao e OUTROS nao viram opcao: nao dizem nada sobre o que o cliente quer.
+  SAUDACAO: { domain: 'GENERAL', requiresAction: 'NONE', rotulo: null, atalho: null },
+  OUTROS: { domain: 'GENERAL', requiresAction: 'NONE', rotulo: null, atalho: null },
 };
 
 export interface IntencaoDetectada {

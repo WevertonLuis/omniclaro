@@ -22,6 +22,8 @@ export interface ContextoSessao {
   /** Intencoes da ultima analise, com o score real. Alimenta o card do dashboard. */
   ultimasIntencoes: { nome: string; confianca: number }[];
   ultimaFonte: string | null;
+  /** Quantas perguntas de desambiguacao ja foram feitas sem resolver. */
+  tentativasDesambiguacao: number;
   ultimoResumo: string | null;
   ultimoSentimento: string | null;
   ultimaUrgencia: string | null;

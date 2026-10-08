@@ -53,6 +53,7 @@ export class SessionService {
       intencoesAcumuladas: [],
       ultimasIntencoes: [],
       ultimaFonte: null,
+      tentativasDesambiguacao: 0,
       ultimoResumo: null,
       ultimoSentimento: null,
       ultimaUrgencia: null,

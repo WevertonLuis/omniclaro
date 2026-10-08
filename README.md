@@ -258,11 +258,29 @@ O painel renderiza `***.763.088-**`: dígitos suficientes para o atendente confe
 
 ## Regra de transbordo
 
-O orquestrador escala para atendimento humano quando **qualquer** das condições ocorre:
+O orquestrador escala **imediatamente** quando:
 
 - o cliente pede explicitamente (`FALAR_COM_ATENDENTE`) ou sinaliza cancelamento (`CANCELAMENTO`);
-- o Gemini marca `requer_humano: true` no JSON estruturado;
-- a maior confiança entre as intenções fica **abaixo de `HANDOFF_CONFIDENCE_THRESHOLD`** (padrão `0.80`, configurável no `.env`).
+- o Gemini marca `requer_humano: true` no JSON estruturado.
+
+### Baixa confiança: perguntar antes de escalar
+
+Quando a maior confiança fica **abaixo de `HANDOFF_CONFIDENCE_THRESHOLD`** (padrão `0.80`), o orquestrador **não** escala de cara. Ele faz uma pergunta de esclarecimento, como manda a seção 7.2 da documentação, e só manda para a fila se a dúvida persistir — no máximo `MAX_DESAMBIGUACOES` perguntas (hoje, uma).
+
+A pergunta aproveita o que o modelo já levantou, mesmo com score baixo:
+
+| Situação | Resposta ao cliente |
+|---|---|
+| Dois ou mais palpites | *"Só para eu não te mandar para o lugar errado: você quer ajuda com a internet de casa caindo ou com a sua fatura?"* |
+| Um palpite só | *"Deixa eu confirmar, Lucas: você quer falar sobre a sua fatura?"* — com as outras jornadas a um clique |
+| Nenhuma pista | *"Não entendi direito. Pode me contar com outras palavras?"* — com as jornadas principais como atalho |
+
+Duas decisões por trás disso:
+
+- **O palpite de baixa confiança não é descartado.** Na prática o Gemini devolve *um* palpite com score baixo, não uma lista de empatados. Cair direto no texto genérico jogaria fora a melhor pista disponível, então o caminho mais comum é confirmar esse palpite.
+- **`FALAR_COM_ATENDENTE` e `CANCELAMENTO` nunca viram opção sugerida.** Oferecê-las empurraria o cliente para fora da automação justamente quando o objetivo é mantê-lo nela. Elas continuam disponíveis como botão de saída, nunca como sugestão.
+
+Por que isso importa: antes, qualquer mensagem vaga abria um chamado e consumia um atendente — o que contraria a documentação e derruba o **FCR**, indicador que o painel do supervisor acompanha com meta de ≥ 70%.
 
 ---
 

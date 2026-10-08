@@ -11,7 +11,7 @@ import { NomeIntencao, ResultadoNlu } from '../nlu/nlu.types';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { SessionService } from '../session/session.service';
 import { ContextoSessao } from '../session/session.types';
-import { comporMensagemTransbordo, comporResposta } from './reply.composer';
+import { comporDesambiguacao, comporMensagemTransbordo, comporResposta } from './reply.composer';
 
 export interface MensagemEntrada {
   texto: string;
@@ -24,7 +24,7 @@ export interface MensagemEntrada {
 export interface RespostaOrquestrador {
   sessionId: string;
   protocolo: string | null;
-  modo: 'AUTOMATICO' | 'TRANSBORDO' | 'ATENDIMENTO_HUMANO';
+  modo: 'AUTOMATICO' | 'DESAMBIGUACAO' | 'TRANSBORDO' | 'ATENDIMENTO_HUMANO';
   resposta: string | null;
   quickReplies: string[];
   nlu: ResultadoNlu | null;
@@ -49,6 +49,9 @@ const INTENCOES_SUPORTE: NomeIntencao[] = [
 const INTENCOES_COMERCIAIS: NomeIntencao[] = ['CONTRATACAO_SERVICO_STREAMING', 'CONSULTA_OFERTAS'];
 
 const INTENCOES_ESCALADA: NomeIntencao[] = ['FALAR_COM_ATENDENTE', 'CANCELAMENTO'];
+
+/** Perguntas de esclarecimento antes de escalar. Acima disso, vai para a fila. */
+const MAX_DESAMBIGUACOES = 1;
 
 @Injectable()
 export class OrchestratorService {
@@ -122,18 +125,65 @@ export class OrchestratorService {
         `sentimento=${nlu.sentimento} fonte=${nlu.fonte} (${nlu.latencia_ms}ms)`,
     );
 
-    // 6. Regra de transbordo: pedido explicito, sinal do modelo ou confianca abaixo do limiar
+    // 6. Transbordo imediato: pedido explicito do cliente ou sinal do modelo.
     const pedidoExplicito = nomes.some((n) => INTENCOES_ESCALADA.includes(n));
-    const baixaConfianca = maiorConfianca < this.limiarConfianca;
-    if (pedidoExplicito || nlu.requer_humano || baixaConfianca) {
+    if (pedidoExplicito || nlu.requer_humano) {
       const motivo = pedidoExplicito
         ? 'Cliente solicitou atendimento humano'
-        : nlu.requer_humano
-          ? 'Modelo sinalizou necessidade de atendimento humano'
-          : `Confianca ${maiorConfianca.toFixed(2)} abaixo do limiar ${this.limiarConfianca}`;
-
+        : 'Modelo sinalizou necessidade de atendimento humano';
       return this.executarTransbordo(contexto, nlu, motivo, primeiroNome, inicio);
     }
+
+    // 6b. Confianca abaixo do limiar: pergunta antes de escalar (secao 7.2).
+    // Escalar na primeira duvida gastava atendente humano com mensagem vaga e
+    // derrubava o FCR. So depois de MAX_DESAMBIGUACOES sem sair do lugar e que
+    // o caso vai para a fila.
+    if (maiorConfianca < this.limiarConfianca) {
+      const tentativas = contexto.tentativasDesambiguacao ?? 0;
+
+      if (tentativas >= MAX_DESAMBIGUACOES) {
+        return this.executarTransbordo(
+          contexto,
+          nlu,
+          `Desambiguacao nao resolveu apos ${tentativas} tentativa(s); ` +
+            `confianca ${maiorConfianca.toFixed(2)} abaixo do limiar ${this.limiarConfianca}`,
+          primeiroNome,
+          inicio,
+        );
+      }
+
+      contexto.tentativasDesambiguacao = tentativas + 1;
+      const pergunta = comporDesambiguacao(primeiroNome, nomes);
+
+      this.logger.log(
+        `[${contexto.sessionId.slice(0, 8)}] desambiguando (tentativa ${contexto.tentativasDesambiguacao}/${MAX_DESAMBIGUACOES})`,
+      );
+
+      await this.conversation.registrarMensagem(contexto.sessionId, 'BOT', pergunta.texto);
+      const atualizado = await this.sessions.registrarTurno(contexto, {
+        remetente: 'BOT',
+        texto: pergunta.texto,
+        timestamp: new Date().toISOString(),
+      });
+      this.gateway.emitirMensagem(contexto.sessionId, 'BOT', pergunta.texto, {
+        quickReplies: pergunta.quickReplies,
+      });
+
+      return this.montarResposta(
+        atualizado,
+        nlu,
+        null,
+        null,
+        null,
+        'DESAMBIGUACAO',
+        pergunta.texto,
+        pergunta.quickReplies,
+        inicio,
+      );
+    }
+
+    // Entendeu com confianca: zera o contador para a proxima duvida comecar do zero.
+    contexto.tentativasDesambiguacao = 0;
 
     // 7. Acoes despachadas EM PARALELO conforme as intencoes detectadas
     const precisaSuporte = nomes.some((n) => INTENCOES_SUPORTE.includes(n));

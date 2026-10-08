@@ -1,8 +1,10 @@
 import { DiagnosticoRede, Oferta } from '../mocks/mocks.service';
-import { ResultadoNlu } from '../nlu/nlu.types';
+import { CATALOGO_INTENCOES, NomeIntencao, ResultadoNlu } from '../nlu/nlu.types';
 
 export interface RespostaComposta {
   texto: string;
+  /** Preenchido na desambiguacao de palpite unico, para registro no contexto. */
+  intencaoSugerida?: NomeIntencao;
   quickReplies: string[];
 }
 
@@ -108,4 +110,66 @@ export function comporMensagemTransbordo(primeiroNome: string, protocolo: string
     `${espera} — e ja mandei junto todo o resumo do que conversamos aqui, entao voce nao vai precisar repetir nada.\n\n` +
     `Protocolo: *${protocolo}*.`
   );
+}
+
+/** Atalhos das jornadas principais, oferecidos quando nao ha pista melhor. */
+const ATALHOS_PADRAO = ['Minha internet esta caindo', 'Ver minha fatura', 'Ver ofertas de streaming'];
+
+/**
+ * Pergunta de desambiguacao, acionada quando a confianca fica abaixo do limiar
+ * (secao 7.2 da documentacao). Antes o orquestrador escalava direto para um
+ * humano; perguntar primeiro resolve a maior parte dos casos sozinho e protege
+ * a meta de FCR.
+ *
+ * Na pratica o Gemini devolve UM palpite com score baixo, nao uma lista de
+ * empatados — entao o caminho que mais acontece e o de confirmar esse palpite,
+ * nao o de oferecer duas alternativas. Descartar esse palpite e cair no texto
+ * generico jogaria fora a melhor pista disponivel.
+ */
+export function comporDesambiguacao(primeiroNome: string, intencoes: NomeIntencao[]): RespostaComposta {
+  // Vocativo so quando ha nome de verdade: cliente nao identificado viraria
+  // "Desculpa, Cliente,".
+  const voce = primeiroNome && primeiroNome !== 'Cliente' ? primeiroNome : '';
+
+  const candidatos = [...new Set(intencoes)]
+    .map((nome) => ({ nome, meta: CATALOGO_INTENCOES[nome] }))
+    .filter((c) => c.meta?.rotulo)
+    // "falar com atendente" e "cancelamento" nunca viram opcao sugerida:
+    // oferece-los seria empurrar o cliente para fora da automacao.
+    .filter((c) => c.nome !== 'FALAR_COM_ATENDENTE' && c.nome !== 'CANCELAMENTO')
+    .slice(0, 3);
+
+  // Dois ou mais palpites: pergunta qual deles.
+  if (candidatos.length >= 2) {
+    const rotulos = candidatos.map((c) => c.meta.rotulo);
+    const ultimo = rotulos.pop();
+    return {
+      texto:
+        `${voce ? voce + ', s' : 'S'}o para eu nao te mandar para o lugar errado: ` +
+        `voce quer ajuda com ${rotulos.join(', ')} ou com ${ultimo}?`,
+      quickReplies: [...candidatos.map((c) => c.meta.atalho), 'Falar com atendente'],
+    };
+  }
+
+  // Um palpite so: confirma esse, mas deixa as outras jornadas a um clique.
+  if (candidatos.length === 1) {
+    const { meta, nome } = candidatos[0];
+    const outros = ATALHOS_PADRAO.filter((a) => a !== meta.atalho).slice(0, 2);
+    return {
+      texto:
+        `${voce ? 'Deixa eu confirmar, ' + voce + ': v' : 'Deixa eu confirmar: v'}oce quer falar sobre ` +
+        `${meta.rotulo}?\n\nSe nao for isso, me conta com outras palavras que eu te ajudo.`,
+      quickReplies: [meta.atalho, ...outros, 'Falar com atendente'].filter(Boolean).slice(0, 4),
+      intencaoSugerida: nome,
+    };
+  }
+
+  // Nenhuma pista: abre o leque das jornadas que o sistema resolve.
+  return {
+    texto:
+      `${voce ? 'Desculpa, ' + voce + ', n' : 'Desculpa, n'}ao entendi direito. ` +
+      'Pode me contar com outras palavras?\n\n' +
+      'Consigo resolver problema de conexao, ver sua fatura e ativar servicos na sua conta.',
+    quickReplies: [...ATALHOS_PADRAO, 'Falar com atendente'],
+  };
 }
