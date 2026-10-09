@@ -139,5 +139,7 @@ export interface ResultadoNlu {
   entrada_suspeita?: boolean;
   /** Padroes reconhecidos pela sanitizacao, para auditoria. */
   padroes_sanitizacao?: string[];
+  /** Regras de curadoria que atuaram sobre a saida do modelo. */
+  curadoria_aplicada?: string[];
   latencia_ms: number;
 }

@@ -8,6 +8,7 @@ import { AuthGuard } from './auth/auth.guard';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
 import { CacheModule } from './cache/cache.module';
+import { CuradoriaModule } from './curadoria/curadoria.module';
 import { ConversationModule } from './conversation/conversation.module';
 import { DatabaseModule } from './database/database.module';
 import { SeedService } from './database/seed.service';
@@ -25,6 +26,7 @@ import { SessionModule } from './session/session.module';
     CacheModule,
     AuditoriaModule,
     AuthModule,
+    CuradoriaModule,
     ConversationModule,
     SessionModule,
     NluModule,

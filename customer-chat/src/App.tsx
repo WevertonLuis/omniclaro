@@ -12,6 +12,12 @@ interface Bolha {
   operador?: string;
 }
 
+interface Etapa {
+  chave: string;
+  rotulo: string;
+  estado: 'EXECUTANDO' | 'CONCLUIDO';
+}
+
 type Canal = 'WHATSAPP' | 'APP_MINHA_CLARO' | 'PORTAL_WEB';
 
 const CENARIOS = [
@@ -34,7 +40,35 @@ export default function App() {
   /** Protocolo aguardando nota; null quando nao ha pesquisa aberta. */
   const [protocoloAvaliar, setProtocoloAvaliar] = useState<string | null>(null);
   const [notaEnviada, setNotaEnviada] = useState<number | null>(null);
+  const [etapas, setEtapas] = useState<Etapa[]>([]);
+  /** Gerado uma vez por aba: permite receber progresso antes de existir sessao. */
+  const correlacaoId = useRef(Math.random().toString(36).slice(2) + Date.now().toString(36));
   const fim = useRef<HTMLDivElement>(null);
+
+  // Entra na sala de correlacao assim que a aba abre.
+  useEffect(() => {
+    const entrar = () => socket.emit('customer:joinCorrelacao', { correlacaoId: correlacaoId.current });
+    entrar();
+    socket.on('connect', entrar);
+
+    function onProgresso(p: { chave: string; rotulo: string; estado: 'EXECUTANDO' | 'CONCLUIDO' }) {
+      setEtapas((atuais) => {
+        const existente = atuais.find((e) => e.chave === p.chave);
+        if (existente) return atuais.map((e) => (e.chave === p.chave ? { ...e, ...p } : e));
+        return [...atuais, { chave: p.chave, rotulo: p.rotulo, estado: p.estado }];
+      });
+      // Feedback tatil em celular: avisa que algo andou sem exigir leitura.
+      if (p.estado === 'CONCLUIDO' && typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(20);
+      }
+    }
+
+    socket.on('progress:update', onProgresso);
+    return () => {
+      socket.off('connect', entrar);
+      socket.off('progress:update', onProgresso);
+    };
+  }, []);
 
   async function avaliar(nota: number) {
     if (!protocoloAvaliar) return;
@@ -119,13 +153,14 @@ export default function App() {
     setBolhas((b) => [...b, { remetente: 'CLIENTE', texto: conteudo, hora: agora() }]);
     setRascunho('');
     setQuickReplies([]);
+    setEtapas([]);
     setDigitando(true);
 
     try {
       const r = await fetch('/api/v1/webhooks/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: conteudo, canal, telefone: '+5511992314872' }),
+        body: JSON.stringify({ texto: conteudo, canal, telefone: '+5511992314872', correlacaoId: correlacaoId.current }),
       });
       const data = await r.json();
 
@@ -143,6 +178,8 @@ export default function App() {
       ]);
     } finally {
       setDigitando(false);
+      setEtapas([]);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([12, 40, 12]);
     }
   }
 
@@ -151,6 +188,7 @@ export default function App() {
     setQuickReplies([]);
     setSessionId(null);
     setEmAtendimento(false);
+    setEtapas([]);
     setProtocoloAvaliar(null);
     setNotaEnviada(null);
   }
@@ -223,10 +261,40 @@ export default function App() {
         ))}
 
         {digitando && (
-          <div className="flex gap-1 rounded-xl rounded-tl-sm bg-white px-3 py-2.5 shadow-sm" style={{ width: 'fit-content' }}>
-            {[0, 150, 300].map((d) => (
-              <span key={d} className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-400" style={{ animationDelay: `${d}ms` }} />
-            ))}
+          <div className="rounded-xl rounded-tl-sm bg-white px-3 py-2.5 shadow-sm" style={{ width: 'fit-content', maxWidth: '86%' }}>
+            {etapas.length === 0 ? (
+              <div className="flex gap-1">
+                {[0, 150, 300].map((d) => (
+                  <span
+                    key={d}
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-400"
+                    style={{ animationDelay: `${d}ms` }}
+                  />
+                ))}
+              </div>
+            ) : (
+              /* Consulta a sistema legado leva segundos: dizer o que esta
+                 acontecendo evita a impressao de que o bot travou. */
+              <ul className="space-y-1.5">
+                {etapas.map((e) => (
+                  <li key={e.chave} className="flex items-center gap-2 text-[11.5px]">
+                    {e.estado === 'CONCLUIDO' ? (
+                      <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-emerald-100 text-[9px] font-bold text-emerald-700">
+                        &#10003;
+                      </span>
+                    ) : (
+                      <span
+                        className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-claro-rose border-t-claro-red"
+                        aria-hidden
+                      />
+                    )}
+                    <span className={e.estado === 'CONCLUIDO' ? 'text-ink-400 line-through' : 'text-ink-700'}>
+                      {e.rotulo}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 

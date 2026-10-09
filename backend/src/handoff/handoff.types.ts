@@ -5,6 +5,19 @@ export interface ChipValidado {
   icone: string;
 }
 
+export type NivelPrioridade = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAIXA';
+
+/**
+ * Prioridade derivada de sentimento, urgencia, reincidencia e espera.
+ * `motivos` existe para que a fila nunca comunique urgencia so por cor:
+ * o operador le em texto por que aquele card subiu.
+ */
+export interface Prioridade {
+  nivel: NivelPrioridade;
+  pontuacao: number;
+  motivos: string[];
+}
+
 export interface ItemHistorico {
   protocolo: string;
   assunto: string;
@@ -25,6 +38,9 @@ export interface HandoffCard {
   entrouNaFilaEm: string;
   tempoEsperaSegundos: number;
   motivo: string;
+  prioridade: Prioridade;
+  /** Texto normalizado (cliente, resumo, intencoes, conversa) usado na busca. */
+  indiceBusca: string;
 
   ia: {
     resumo: string;
@@ -49,6 +65,9 @@ export interface HandoffCard {
     ultimaOs: string;
     tipoContrato: string;
     statusConta: string;
+    /** Cliente com historico de chamados: pesa na prioridade. */
+    reincidente: boolean;
+    totalProtocolos: number;
   };
 
   chips: ChipValidado[];

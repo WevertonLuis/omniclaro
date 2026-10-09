@@ -63,11 +63,28 @@ export class AdminService {
     const mensagensComVarias = [...porMensagem.values()].filter((n) => n > 1).length;
     const taxaMultiIntencao = porMensagem.size ? (mensagensComVarias / porMensagem.size) * 100 : 0;
 
+    // Latencia ponta a ponta das respostas automaticas, medida de verdade.
+    const latencias = mensagens
+      .map((m) => m.latencia_ms)
+      .filter((n): n is number => typeof n === 'number' && n > 0)
+      .sort((a, b) => a - b);
+    const p95 = percentil(latencias, 95);
+    const p50 = percentil(latencias, 50);
+
     const kpis: Kpi[] = [
       {
         rotulo: 'Sessões',
         valor: String(totalSessoes),
         detalhe: `${sessoes.filter((s) => s.status_sessao === 'ATIVA').length} ativas`,
+      },
+      {
+        // Meta da secao 9.1. O mock de rede sozinho leva 2 a 3s, entao o P95
+        // real do prototipo fica acima do alvo — mostramos o numero honesto.
+        rotulo: 'Latência P95 do bot',
+        valor: p95 ? `${(p95 / 1000).toFixed(1)}s` : '—',
+        detalhe: latencias.length ? `mediana ${(p50 / 1000).toFixed(1)}s · ${latencias.length} respostas` : 'sem dados',
+        meta: '≤ 1,8s',
+        atingiuMeta: p95 > 0 && p95 <= 1800,
       },
       {
         rotulo: 'Resolução sem humano (FCR)',
@@ -262,4 +279,11 @@ export class AdminService {
       .map(([nome, quantidade]) => ({ nome, quantidade, percentual: (quantidade / total) * 100 }))
       .sort((a, b) => b.quantidade - a.quantidade);
   }
+}
+
+/** Percentil sobre lista ja ordenada. Interpolacao desnecessaria aqui. */
+function percentil(ordenada: number[], p: number): number {
+  if (!ordenada.length) return 0;
+  const indice = Math.min(ordenada.length - 1, Math.ceil((p / 100) * ordenada.length) - 1);
+  return ordenada[Math.max(0, indice)];
 }

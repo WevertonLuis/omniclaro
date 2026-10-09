@@ -24,6 +24,11 @@ export class InboundMessageDto {
   @IsOptional()
   @IsInt()
   clienteId?: number;
+
+  /** Id gerado pelo chat para receber o progresso antes de existir sessao. */
+  @IsOptional()
+  @IsString()
+  correlacaoId?: string;
 }
 
 @Publico()

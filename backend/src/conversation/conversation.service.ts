@@ -83,9 +83,19 @@ export class ConversationService {
 
   // ---------------------------- Mensagem -----------------------------
 
-  async registrarMensagem(sessionId: string, remetente: Remetente, texto: string): Promise<Mensagem> {
+  async registrarMensagem(
+    sessionId: string,
+    remetente: Remetente,
+    texto: string,
+    latenciaMs?: number,
+  ): Promise<Mensagem> {
     return this.mensagens.save(
-      this.mensagens.create({ id_sessao: sessionId, remetente, conteudo_texto: texto }),
+      this.mensagens.create({
+        id_sessao: sessionId,
+        remetente,
+        conteudo_texto: texto,
+        latencia_ms: latenciaMs ?? null,
+      }),
     );
   }
 

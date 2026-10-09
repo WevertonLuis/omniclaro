@@ -16,7 +16,11 @@ import { SessionService } from '../session/session.service';
 import { HandoffService } from '../handoff/handoff.service';
 
 export const ROOM_DASHBOARD = 'dashboard';
+export const ROOM_SUPERVISAO = 'supervisao';
 export const roomSessao = (sessionId: string) => `session:${sessionId}`;
+/** Sala temporaria: o cliente entra nela ANTES de existir sessao, para
+ * receber o progresso ja da primeira mensagem. */
+export const roomCorrelacao = (correlacaoId: string) => `corr:${correlacaoId}`;
 
 /** Socket com o operador autenticado anexado apos dashboard:join. */
 interface SocketOperador extends Socket {
@@ -69,6 +73,25 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     client.emit('queue:update', fila);
     this.logger.log(`${operador.nome} (${operador.papel}) entrou no painel`);
     return { ok: true, sala: ROOM_DASHBOARD, fila: fila.length, operador: operador.nome };
+  }
+
+  /** Painel gerencial: recebe aviso quando algum numero muda. */
+  @SubscribeMessage('supervisor:join')
+  supervisorJoin(@ConnectedSocket() client: SocketOperador, @MessageBody() body?: { token?: string }) {
+    const operador = this.autenticar(client, body?.token);
+    if (!operador) return { ok: false, erro: 'Token ausente ou invalido.' };
+    if (operador.papel !== 'SUPERVISOR') return { ok: false, erro: 'Area restrita ao supervisor.' };
+    client.join(ROOM_SUPERVISAO);
+    this.logger.log(`${operador.nome} abriu o painel gerencial`);
+    return { ok: true };
+  }
+
+  /** Entrada antecipada, antes de a sessao existir. */
+  @SubscribeMessage('customer:joinCorrelacao')
+  customerJoinCorrelacao(@ConnectedSocket() client: Socket, @MessageBody() body: { correlacaoId: string }) {
+    if (!body?.correlacaoId) return { ok: false };
+    client.join(roomCorrelacao(body.correlacaoId));
+    return { ok: true };
   }
 
   @SubscribeMessage('customer:join')
@@ -148,6 +171,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   emitirHandoff(card: unknown) {
     this.server?.to(ROOM_DASHBOARD).emit('handoff:new', card);
     this.emitirFila();
+    this.sinalizarMetricasDesatualizadas('transbordo');
   }
 
   async emitirFila() {
@@ -159,6 +183,30 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     const payload = { sessionId, remetente, texto, timestamp: new Date().toISOString(), ...extra };
     this.server?.to(ROOM_DASHBOARD).emit('message:new', payload);
     this.server?.to(roomSessao(sessionId)).emit('message:new', payload);
+  }
+
+  /**
+   * Progresso das acoes longas. Vai para a sala da sessao e para a de
+   * correlacao: na primeira mensagem a sessao ainda nao existia quando o
+   * cliente conectou.
+   */
+  emitirProgresso(
+    sessionId: string | null,
+    correlacaoId: string | undefined,
+    etapa: { chave: string; rotulo: string; estado: 'EXECUTANDO' | 'CONCLUIDO' },
+  ) {
+    const payload = { sessionId, ...etapa, timestamp: new Date().toISOString() };
+    if (sessionId) this.server?.to(roomSessao(sessionId)).emit('progress:update', payload);
+    if (correlacaoId) this.server?.to(roomCorrelacao(correlacaoId)).emit('progress:update', payload);
+  }
+
+  /**
+   * Avisa o painel gerencial que os numeros mudaram. Enviamos o sinal, nao os
+   * dados: o calculo das metricas percorre varias tabelas, entao e mais barato
+   * o painel buscar uma vez do que recalcular a cada mensagem para todo mundo.
+   */
+  sinalizarMetricasDesatualizadas(origem = 'atendimento') {
+    this.server?.to(ROOM_SUPERVISAO).emit('metrics:stale', { origem, timestamp: new Date().toISOString() });
   }
 
   emitirContexto(sessionId: string, contexto: unknown) {

@@ -22,6 +22,10 @@ export class Mensagem {
   @Column({ type: 'text' })
   conteudo_texto: string;
 
+  /** Latencia ponta a ponta da resposta do bot, em ms. Alimenta o P95. */
+  @Column({ type: 'int', nullable: true })
+  latencia_ms: number | null;
+
   @CreateDateColumn()
   timestamp: Date;
 

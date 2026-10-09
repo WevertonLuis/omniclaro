@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { buscarComToken, useAuth } from '../lib/auth';
+import { socket } from '../lib/socket';
+import PainelCuradoria from './PainelCuradoria';
 import { BoltIcon } from './icons';
 
 interface Kpi {
@@ -76,6 +78,8 @@ export default function AdminDashboard() {
   const [operadores, setOperadores] = useState<OperadorResumo[]>([]);
   const [trilha, setTrilha] = useState<Trilha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [aoVivo, setAoVivo] = useState(false);
+  const [piscando, setPiscando] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -101,10 +105,33 @@ export default function AdminDashboard() {
     }
 
     carregar();
-    const t = setInterval(carregar, 15000);
+
+    // Push em vez de polling: o servidor avisa quando algum numero muda.
+    // O intervalo longo fica so como rede de seguranca, se o socket cair.
+    function entrar() {
+      socket.emit('supervisor:join', { token }, (r: { ok?: boolean }) => setAoVivo(Boolean(r?.ok)));
+    }
+    function onStale() {
+      setPiscando(true);
+      setTimeout(() => setPiscando(false), 900);
+      carregar();
+    }
+    function onDisconnect() {
+      setAoVivo(false);
+    }
+
+    entrar();
+    socket.on('connect', entrar);
+    socket.on('disconnect', onDisconnect);
+    socket.on('metrics:stale', onStale);
+
+    const seguranca = setInterval(carregar, 60000);
     return () => {
       vivo = false;
-      clearInterval(t);
+      clearInterval(seguranca);
+      socket.off('connect', entrar);
+      socket.off('disconnect', onDisconnect);
+      socket.off('metrics:stale', onStale);
     };
   }, [token]);
 
@@ -125,9 +152,27 @@ export default function AdminDashboard() {
               Visão consolidada da operação — {operador?.nome}
             </p>
           </div>
-          <span className="text-[11px] text-ink-400">
-            atualizado {new Date(metricas.geradoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-            {' · '}a cada 15s
+          <span className="flex items-center gap-2 text-[11px] text-ink-400">
+            {/* Estado da conexão sempre escrito, nunca só pela cor do ponto. */}
+            <span
+              className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-medium ${
+                aoVivo ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-hair bg-canvas text-ink-500'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${aoVivo ? 'bg-emerald-500' : 'bg-ink-400'} ${
+                  piscando ? 'animate-ping' : ''
+                }`}
+                aria-hidden
+              />
+              {aoVivo ? 'Ao vivo' : 'Reconectando'}
+            </span>
+            atualizado{' '}
+            {new Date(metricas.geradoEm).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })}
           </span>
         </header>
 
@@ -183,6 +228,7 @@ export default function AdminDashboard() {
 
         <TabelaOperadores operadores={operadores} />
         <TabelaSessoes sessoes={sessoes} />
+        <PainelCuradoria />
         <TabelaAuditoria trilha={trilha} />
       </div>
     </div>

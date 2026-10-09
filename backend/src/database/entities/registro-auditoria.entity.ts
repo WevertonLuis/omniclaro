@@ -19,7 +19,8 @@ export type AcaoAuditada =
   | 'ATENDIMENTO_ASSUMIDO'
   | 'ATENDIMENTO_ENCERRADO'
   | 'AVALIACAO_CSAT'
-  | 'ENTRADA_SUSPEITA';
+  | 'ENTRADA_SUSPEITA'
+  | 'CURADORIA_ALTERADA';
 
 @Entity('registro_auditoria')
 export class RegistroAuditoria {

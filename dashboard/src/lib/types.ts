@@ -22,6 +22,14 @@ export interface TurnoConversa {
   operador?: string;
 }
 
+export type NivelPrioridade = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAIXA';
+
+export interface Prioridade {
+  nivel: NivelPrioridade;
+  pontuacao: number;
+  motivos: string[];
+}
+
 export interface HandoffCard {
   id: number;
   protocolo: string;
@@ -32,6 +40,8 @@ export interface HandoffCard {
   entrouNaFilaEm: string;
   tempoEsperaSegundos: number;
   motivo: string;
+  prioridade: Prioridade;
+  indiceBusca: string;
   ia: {
     resumo: string;
     sentimento: string;
@@ -53,6 +63,8 @@ export interface HandoffCard {
     ultimaOs: string;
     tipoContrato: string;
     statusConta: string;
+    reincidente: boolean;
+    totalProtocolos: number;
   };
   chips: ChipValidado[];
   historicoRecente: ItemHistorico[];

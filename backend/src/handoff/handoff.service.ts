@@ -9,7 +9,7 @@ import { ResultadoNlu } from '../nlu/nlu.types';
 import { SessionService } from '../session/session.service';
 import { ContextoSessao } from '../session/session.types';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { ChipValidado, HandoffCard, ItemHistorico } from './handoff.types';
+import { ChipValidado, HandoffCard, ItemHistorico, NivelPrioridade, Prioridade } from './handoff.types';
 
 const MESES = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
 
@@ -89,7 +89,11 @@ export class HandoffService {
       if (!contexto) continue;
       cards.push(await this.montarCard(registro, contexto));
     }
-    return cards;
+
+    // Mais urgente primeiro; em empate, quem esperou mais.
+    return cards.sort(
+      (a, b) => b.prioridade.pontuacao - a.prioridade.pontuacao || b.tempoEsperaSegundos - a.tempoEsperaSegundos,
+    );
   }
 
   async assumir(protocolo: string, operador: string): Promise<HandoffCard> {
@@ -204,6 +208,28 @@ export class HandoffService {
       ? nlu.intencoes.map((i) => ({ nome: i.nome, confianca: i.confianca }))
       : (contexto.ultimasIntencoes ?? []);
 
+    const sentimento = nlu?.sentimento ?? contexto.ultimoSentimento ?? 'NEUTRO';
+    const urgencia = nlu?.urgencia ?? contexto.ultimaUrgencia ?? 'MEDIA';
+    const espera =
+      registro.status === 'NA_FILA'
+        ? Math.max(0, Math.round((Date.now() - new Date(registro.data_entrada_fila).getTime()) / 1000))
+        : registro.tempo_espera_segundos;
+
+    // Protocolos anteriores (sem contar o desta sessao) definem reincidencia.
+    const anteriores = protocolos.filter((p) => p.numero_protocolo !== registro.numero_protocolo).length;
+    const reincidente = anteriores >= 2;
+
+    const prioridade = this.calcularPrioridade({
+      sentimento,
+      urgencia,
+      espera,
+      reincidente,
+      anteriores,
+      intencoes: intencoesCard.map((i) => i.nome),
+    });
+
+    const resumoIa = nlu?.resumo ?? registro.resumo_cognitivo_ia;
+
     return {
       id: registro.id,
       protocolo: registro.numero_protocolo,
@@ -212,11 +238,28 @@ export class HandoffService {
       status: registro.status as HandoffCard['status'],
       operador: registro.id_operador,
       entrouNaFilaEm: new Date(registro.data_entrada_fila).toISOString(),
-      tempoEsperaSegundos:
-        registro.status === 'NA_FILA'
-          ? Math.max(0, Math.round((Date.now() - new Date(registro.data_entrada_fila).getTime()) / 1000))
-          : registro.tempo_espera_segundos,
+      tempoEsperaSegundos: espera,
       motivo,
+      prioridade,
+      indiceBusca: normalizarBusca(
+        [
+          cliente.nome,
+          cliente.cpf_cnpj,
+          maskCpf(cliente.cpf_cnpj),
+          cliente.telefone,
+          cliente.plano_ativo,
+          registro.numero_protocolo,
+          resumoIa,
+          motivo,
+          contexto.canal,
+          sentimento,
+          urgencia,
+          ...intencoesCard.map((i) => i.nome),
+          ...intencoesCard.map((i) => TERMOS_POR_INTENCAO[i.nome] ?? ''),
+          ...mensagens.map((m) => m.conteudo_texto),
+          ...protocolos.map((p) => `${p.numero_protocolo} ${p.assunto ?? ''}`),
+        ].join(' '),
+      ),
 
       ia: {
         resumo: nlu?.resumo ?? registro.resumo_cognitivo_ia,
@@ -241,6 +284,8 @@ export class HandoffService {
         ultimaOs: cliente.ultima_os ?? '-',
         tipoContrato: cliente.tipo_contrato,
         statusConta: cliente.status_conta,
+        reincidente,
+        totalProtocolos: anteriores,
       },
 
       chips: this.montarChips(contexto, cliente.status_conta, cliente.plano_ativo, registro.numero_protocolo),
@@ -296,6 +341,63 @@ export class HandoffService {
     return chips;
   }
 
+  /**
+   * Pontua a urgencia do card. Cada criterio soma e deixa um motivo em texto,
+   * porque o operador precisa saber POR QUE aquele chamado subiu na fila —
+   * uma borda vermelha sozinha nao informa nada acionavel.
+   */
+  private calcularPrioridade(e: {
+    sentimento: string;
+    urgencia: string;
+    espera: number;
+    reincidente: boolean;
+    anteriores: number;
+    intencoes: string[];
+  }): Prioridade {
+    let pontuacao = 0;
+    const motivos: string[] = [];
+
+    if (e.sentimento === 'FRUSTRADO') {
+      pontuacao += 3;
+      motivos.push('Cliente frustrado');
+    } else if (e.sentimento === 'NEGATIVO') {
+      pontuacao += 2;
+      motivos.push('Sentimento negativo');
+    }
+
+    if (e.urgencia === 'ALTA') {
+      pontuacao += 3;
+      motivos.push('Urgencia alta');
+    } else if (e.urgencia === 'MEDIA') {
+      pontuacao += 1;
+    }
+
+    if (e.intencoes.includes('CANCELAMENTO')) {
+      pontuacao += 3;
+      motivos.push('Risco de cancelamento');
+    }
+
+    if (e.reincidente) {
+      pontuacao += 2;
+      motivos.push(`Reincidente (${e.anteriores} chamados anteriores)`);
+    }
+
+    if (e.espera >= 120) {
+      pontuacao += 2;
+      motivos.push(`Esperando ha ${Math.floor(e.espera / 60)} min`);
+    } else if (e.espera >= 60) {
+      pontuacao += 1;
+      motivos.push('Esperando ha mais de 1 min');
+    }
+
+    const nivel: NivelPrioridade =
+      pontuacao >= 8 ? 'CRITICA' : pontuacao >= 5 ? 'ALTA' : pontuacao >= 3 ? 'MEDIA' : 'BAIXA';
+
+    if (motivos.length === 0) motivos.push('Sem sinais de urgencia');
+
+    return { nivel, pontuacao, motivos };
+  }
+
   private assuntoAtual(ctx: ContextoSessao): string {
     if (ctx.intencoesAcumuladas.some((i) => i.startsWith('SUPORTE_TECNICO'))) {
       return 'Falha de conexao - em atendimento';
@@ -334,4 +436,38 @@ export class HandoffService {
     if (canal === 'APP_MINHA_CLARO') return 'App';
     return 'Web';
   }
+}
+
+/**
+ * Termos do dia a dia associados a cada intencao. Entram no indice de busca
+ * para que o operador ache um chamado procurando por "boleto" ou "wifi", e
+ * nao so pelo nome tecnico SEGUNDA_VIA_FATURA.
+ */
+export const TERMOS_POR_INTENCAO: Record<string, string> = {
+  SUPORTE_TECNICO_INSTABILIDADE: 'wifi internet caindo queda oscilando instavel conexao modem roteador sinal',
+  SUPORTE_TECNICO_SEM_CONEXAO: 'wifi internet sem conexao offline caiu sem sinal modem roteador',
+  SUPORTE_TECNICO_LENTIDAO: 'wifi internet lenta lentidao devagar travando velocidade banda',
+  CONTRATACAO_SERVICO_STREAMING: 'streaming hbo max netflix disney filme serie pacote assinatura contratar',
+  CONSULTA_OFERTAS: 'oferta plano promocao upgrade preco catalogo',
+  CONFIRMACAO_CONTRATACAO: 'confirmar aceitar ativar contratacao',
+  CONSULTA_FATURA: 'fatura conta boleto cobranca valor pagamento',
+  SEGUNDA_VIA_FATURA: 'segunda via boleto fatura codigo de barras pagamento',
+  FALAR_COM_ATENDENTE: 'atendente humano operador pessoa falar',
+  CANCELAMENTO: 'cancelar cancelamento encerrar contrato portabilidade sair',
+  SAUDACAO: 'oi ola bom dia boa tarde',
+  OUTROS: '',
+};
+
+/**
+ * Normaliza para busca: minusculas, sem acento e sem pontuacao.
+ * Permite achar "Joao" digitando "joao" e o CPF com ou sem formatacao.
+ */
+export function normalizarBusca(texto: string): string {
+  return (texto ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

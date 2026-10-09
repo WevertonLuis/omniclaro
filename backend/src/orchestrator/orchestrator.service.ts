@@ -19,6 +19,7 @@ export interface MensagemEntrada {
   telefone?: string;
   cpf?: string;
   clienteId?: number;
+  correlacaoId?: string;
 }
 
 export interface RespostaOrquestrador {
@@ -100,12 +101,19 @@ export class OrchestratorService {
       return this.montarResposta(contexto, null, null, null, null, 'ATENDIMENTO_HUMANO', null, [], inicio);
     }
 
+    // Progresso: acoes longas sem retorno visual davam impressao de travamento.
+    const progresso = (chave: string, rotulo: string, estado: 'EXECUTANDO' | 'CONCLUIDO') =>
+      this.gateway.emitirProgresso(contexto.sessionId, entrada.correlacaoId, { chave, rotulo, estado });
+
+    progresso('nlu', 'Entendendo sua mensagem', 'EXECUTANDO');
+
     // 5. NLU: extracao de multiplas intencoes com schema JSON forcado
     const nlu = await this.nlu.processarIntencao(entrada.texto, {
       nomeCliente: cliente.nome,
       planoCliente: cliente.plano_ativo,
       historico: contexto.historico.slice(-6).map((h) => ({ remetente: h.remetente, texto: h.texto })),
     });
+    progresso('nlu', 'Entendendo sua mensagem', 'CONCLUIDO');
     await this.conversation.registrarIntencoes(mensagem.id, nlu.intencoes);
 
     contexto.ultimoResumo = nlu.resumo;
@@ -159,7 +167,7 @@ export class OrchestratorService {
         `[${contexto.sessionId.slice(0, 8)}] desambiguando (tentativa ${contexto.tentativasDesambiguacao}/${MAX_DESAMBIGUACOES})`,
       );
 
-      await this.conversation.registrarMensagem(contexto.sessionId, 'BOT', pergunta.texto);
+      await this.conversation.registrarMensagem(contexto.sessionId, 'BOT', pergunta.texto, Date.now() - inicio);
       const atualizado = await this.sessions.registrarTurno(contexto, {
         remetente: 'BOT',
         texto: pergunta.texto,
@@ -194,9 +202,22 @@ export class OrchestratorService {
     const equipamento =
       nlu.intencoes.find((i) => INTENCOES_SUPORTE.includes(i.nome))?.entidades?.equipamento ?? 'modem';
 
+    if (precisaSuporte) progresso('rede', 'Fazendo o diagnostico remoto do seu equipamento', 'EXECUTANDO');
+    if (precisaOferta) progresso('catalogo', 'Consultando as ofertas disponiveis', 'EXECUTANDO');
+
     const [diagnostico, oferta] = await Promise.all([
-      precisaSuporte ? this.mocks.resetSignal(equipamento) : Promise.resolve(null),
-      precisaOferta ? this.mocks.melhorOferta(servico) : Promise.resolve(null),
+      precisaSuporte
+        ? this.mocks.resetSignal(equipamento).then((r) => {
+            progresso('rede', 'Diagnostico remoto concluido', 'CONCLUIDO');
+            return r;
+          })
+        : Promise.resolve(null),
+      precisaOferta
+        ? this.mocks.melhorOferta(servico).then((r) => {
+            progresso('catalogo', 'Ofertas consultadas', 'CONCLUIDO');
+            return r;
+          })
+        : Promise.resolve(null),
     ]);
 
     if (diagnostico) contexto.diagnostico = diagnostico;
@@ -225,7 +246,7 @@ export class OrchestratorService {
       primeiroTurno,
     });
 
-    await this.conversation.registrarMensagem(contexto.sessionId, 'BOT', composta.texto);
+    await this.conversation.registrarMensagem(contexto.sessionId, 'BOT', composta.texto, Date.now() - inicio);
     contexto = await this.sessions.registrarTurno(contexto, {
       remetente: 'BOT',
       texto: composta.texto,
@@ -234,6 +255,7 @@ export class OrchestratorService {
 
     this.gateway.emitirMensagem(contexto.sessionId, 'BOT', composta.texto, { quickReplies: composta.quickReplies });
     this.gateway.emitirContexto(contexto.sessionId, contexto);
+    this.gateway.sinalizarMetricasDesatualizadas();
 
     return this.montarResposta(
       contexto,
@@ -262,7 +284,7 @@ export class OrchestratorService {
     const posicao = fila.filter((c) => c.status === 'NA_FILA').findIndex((c) => c.protocolo === card.protocolo) + 1;
 
     const texto = comporMensagemTransbordo(primeiroNome, card.protocolo, posicao);
-    await this.conversation.registrarMensagem(contexto.sessionId, 'BOT', texto);
+    await this.conversation.registrarMensagem(contexto.sessionId, 'BOT', texto, Date.now() - inicio);
     const atualizado = await this.sessions.registrarTurno(contexto, {
       remetente: 'BOT',
       texto,

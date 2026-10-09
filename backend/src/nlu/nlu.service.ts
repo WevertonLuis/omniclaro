@@ -4,6 +4,7 @@ import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
 import { AppConfig } from '../config/configuration';
 import { extrairPorHeuristica } from './fallback.extractor';
 import { RESPONSE_SCHEMA, SYSTEM_PROMPT } from './gemini.schema';
+import { CuradoriaService } from '../curadoria/curadoria.service';
 import { TAG_ABERTURA, TAG_FECHAMENTO, sanitizarEntrada } from './sanitizacao';
 import { INTENCOES, IntencaoDetectada, ResultadoNlu, SENTIMENTOS, URGENCIAS, enriquecerIntencao } from './nlu.types';
 
@@ -19,7 +20,10 @@ export class NluService {
   private readonly model: GenerativeModel | null;
   private readonly modelName: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly curadoria: CuradoriaService,
+  ) {
     const cfg = this.config.get<AppConfig['gemini']>('gemini');
     this.modelName = cfg.model;
 
@@ -78,7 +82,7 @@ export class NluService {
     };
 
     if (!this.model) {
-      return { ...extrairPorHeuristica(entrada.texto, Date.now() - inicio), ...rastro };
+      return this.curadoria.aplicar(texto, { ...extrairPorHeuristica(entrada.texto, Date.now() - inicio), ...rastro });
     }
 
     try {
@@ -89,10 +93,10 @@ export class NluService {
 
       if (!parsed) {
         this.logger.warn(`Resposta do Gemini nao parseavel, aplicando fallback. Bruto: ${bruto?.slice(0, 200)}`);
-        return { ...extrairPorHeuristica(entrada.texto, Date.now() - inicio), ...rastro };
+        return this.curadoria.aplicar(texto, { ...extrairPorHeuristica(entrada.texto, Date.now() - inicio), ...rastro });
       }
 
-      return { ...this.normalizar(parsed, Date.now() - inicio), ...rastro };
+      return this.curadoria.aplicar(texto, { ...this.normalizar(parsed, Date.now() - inicio), ...rastro });
     } catch (erro) {
       
       const detalhe =
@@ -108,7 +112,7 @@ export class NluService {
             'https://generativelanguage.googleapis.com/v1beta/models',
         );
       }
-      return { ...extrairPorHeuristica(entrada.texto, Date.now() - inicio), ...rastro };
+      return this.curadoria.aplicar(texto, { ...extrairPorHeuristica(entrada.texto, Date.now() - inicio), ...rastro });
     }
   }
 
