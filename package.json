@@ -15,7 +15,8 @@
     "dev:chat": "npm run dev --workspace customer-chat",
     "build": "npm run build --workspace backend && npm run build --workspace dashboard && npm run build --workspace customer-chat",
     "seed": "npm run seed --workspace backend",
-    "db": "npm run db --workspace backend"
+    "db": "npm run db --workspace backend",
+    "povoar": "node backend/scripts/povoar-fila.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

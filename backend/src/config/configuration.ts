@@ -55,7 +55,7 @@ export default (): AppConfig => ({
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY ?? '',
-    model: process.env.GEMINI_MODEL ?? 'gemini-3.6-flash',
+    model: process.env.GEMINI_MODEL ?? 'gemini-3.1-flash-lite',
     thinkingLevel: (process.env.GEMINI_THINKING_LEVEL ?? 'low').trim(),
   },
   auth: {

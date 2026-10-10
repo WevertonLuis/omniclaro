@@ -1,0 +1,691 @@
+<meta charset="utf-8">
+<title>OmniClaro — Sprint 4 — Equipe MINDERS</title>
+<style>
+  /* ---------- Impressao ---------- */
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+
+  :root {
+    --claro: #DA291C;
+    --claro-escuro: #A9131A;
+    --rosa: #FDEEEE;
+    --tinta: #16202C;
+    --tinta-media: #33475B;
+    --tinta-fraca: #5A6B7D;
+    --linha: #E2E6EA;
+    --fundo-suave: #F6F7F9;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0 auto;
+    max-width: 178mm;
+    padding: 10mm 0 20mm;
+    font-family: "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: var(--tinta);
+    background: #fff;
+  }
+
+  h1, h2, h3 { line-height: 1.25; }
+  p { margin: 0 0 9pt; text-align: justify; }
+
+  /* ---------- Capa ---------- */
+  .capa {
+    min-height: 245mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    page-break-after: always;
+  }
+  .capa .marca {
+    display: inline-block;
+    background: var(--claro);
+    color: #fff;
+    font-weight: 700;
+    font-size: 11pt;
+    letter-spacing: .08em;
+    padding: 5pt 11pt;
+    border-radius: 4pt;
+    margin-bottom: 16pt;
+  }
+  .capa h1 { font-size: 30pt; margin: 0 0 6pt; letter-spacing: -.02em; }
+  .capa .sub { font-size: 14pt; color: var(--tinta-media); margin: 0 0 26pt; font-weight: 400; }
+  .capa .regua { height: 3pt; width: 70pt; background: var(--claro); margin-bottom: 26pt; }
+  .capa dl { display: grid; grid-template-columns: 120pt 1fr; gap: 6pt 0; margin: 0 0 26pt; font-size: 10.5pt; }
+  .capa dt { color: var(--tinta-fraca); }
+  .capa dd { margin: 0; font-weight: 600; }
+  .capa .equipe { border-top: 1pt solid var(--linha); padding-top: 14pt; }
+  .capa .equipe strong { display: block; font-size: 9.5pt; letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-fraca); font-weight: 600; margin-bottom: 7pt; }
+  .capa .equipe li { list-style: none; margin-bottom: 3pt; }
+  .capa ul { padding: 0; margin: 0; }
+
+  .destaque-link {
+    margin-top: 22pt;
+    border: 1.5pt solid var(--claro);
+    background: var(--rosa);
+    border-radius: 5pt;
+    padding: 11pt 13pt;
+  }
+  .destaque-link strong { display: block; font-size: 9.5pt; text-transform: uppercase; letter-spacing: .06em; color: var(--claro-escuro); margin-bottom: 4pt; }
+  .destaque-link .url { font-family: Consolas, monospace; font-size: 11pt; word-break: break-all; }
+
+  /* ---------- Secoes ---------- */
+  .secao { page-break-before: always; }
+  .secao > h2 {
+    font-size: 16pt;
+    margin: 0 0 3pt;
+    padding-bottom: 7pt;
+    border-bottom: 2pt solid var(--claro);
+  }
+  .secao > h2 .num {
+    display: inline-block;
+    background: var(--claro);
+    color: #fff;
+    font-size: 11pt;
+    width: 20pt; height: 20pt;
+    line-height: 20pt;
+    text-align: center;
+    border-radius: 50%;
+    margin-right: 7pt;
+    vertical-align: 2pt;
+  }
+  .tagline { color: var(--tinta-fraca); font-size: 10pt; margin: 6pt 0 14pt; font-style: italic; }
+
+  h3 {
+    font-size: 11pt;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--tinta-media);
+    margin: 16pt 0 7pt;
+  }
+  h3.antes { color: #8a6100; }
+  h3.depois { color: #11693f; }
+
+  /* ---------- Blocos ---------- */
+  .origem {
+    background: var(--fundo-suave);
+    border-left: 3pt solid var(--tinta-fraca);
+    padding: 9pt 12pt;
+    margin-bottom: 12pt;
+    font-size: 10pt;
+  }
+  .origem strong { color: var(--tinta-media); }
+
+  .justificativa {
+    border: 1pt solid var(--linha);
+    border-top: 3pt solid var(--claro);
+    border-radius: 0 0 4pt 4pt;
+    padding: 11pt 13pt;
+    margin-top: 14pt;
+    page-break-inside: avoid;
+  }
+  .justificativa h4 {
+    margin: 0 0 7pt;
+    font-size: 10.5pt;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--claro-escuro);
+  }
+  .justificativa p:last-child { margin-bottom: 0; }
+
+  .evidencia {
+    background: #10212e;
+    color: #d6e4ef;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    padding: 9pt 11pt;
+    border-radius: 4pt;
+    white-space: pre-wrap;
+    margin: 10pt 0;
+    page-break-inside: avoid;
+  }
+  .evidencia .rotulo { display: block; color: #7f98ad; margin-bottom: 5pt; font-size: 7.5pt; letter-spacing: .08em; text-transform: uppercase; }
+
+  /* ---------- Imagens ---------- */
+  figure { margin: 0 0 12pt; page-break-inside: avoid; }
+  figure img { width: 100%; border: 1pt solid var(--linha); border-radius: 3pt; display: block; }
+  figcaption { font-size: 8.5pt; color: var(--tinta-fraca); margin-top: 4pt; }
+
+  .par { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+
+  /* Marcador que aparece enquanto a imagem nao existe na pasta */
+  .vazio {
+    border: 1.5pt dashed var(--claro);
+    background: var(--rosa);
+    border-radius: 4pt;
+    padding: 14pt 12pt;
+    text-align: center;
+    font-size: 9pt;
+    color: var(--claro-escuro);
+  }
+  .vazio .arquivo { display: block; font-family: Consolas, monospace; font-weight: 700; font-size: 10pt; margin: 4pt 0; }
+  .vazio .como { display: block; color: var(--tinta-media); font-size: 8.5pt; margin-top: 5pt; }
+
+  /* ---------- Tabelas ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 10pt 0; page-break-inside: avoid; }
+  th, td { text-align: left; padding: 6pt 8pt; border-bottom: 1pt solid var(--linha); vertical-align: top; }
+  th { background: var(--fundo-suave); font-size: 8.5pt; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-fraca); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .rotulo-nivel { display: inline-block; padding: 1pt 5pt; border-radius: 3pt; font-size: 8pt; font-weight: 700; }
+  .n-critica { background: #fde2e2; color: #8c1d1d; }
+  .n-alta    { background: #fdeccd; color: #7a4a06; }
+  .n-media   { background: #d9ecfb; color: #10456e; }
+  .n-baixa   { background: #eceff2; color: #4a5a68; }
+
+  ul.lista { margin: 0 0 9pt; padding-left: 14pt; }
+  ul.lista li { margin-bottom: 4pt; }
+
+  .nota { font-size: 9pt; color: var(--tinta-fraca); border-top: 1pt solid var(--linha); padding-top: 8pt; margin-top: 14pt; }
+
+  @media print {
+    .so-tela { display: none !important; }
+    body { padding-top: 0; }
+  }
+  .so-tela {
+    background: #10212e; color: #e8f0f6; padding: 12pt 16pt; border-radius: 5pt;
+    margin-bottom: 14pt; font-size: 9.5pt; line-height: 1.6;
+  }
+  .so-tela strong { color: #ffd9d6; }
+  .so-tela code { background: rgba(255,255,255,.12); padding: 1pt 4pt; border-radius: 3pt; font-size: 9pt; }
+</style>
+
+<div class="so-tela">
+  <strong>Como gerar o PDF (este aviso não sai na impressão)</strong><br>
+  1. Salve as capturas de tela na pasta <code>documento/imagens/</code> usando exatamente os nomes de arquivo indicados nos quadros vermelhos.<br>
+  2. Recarregue esta página — os quadros somem e as imagens aparecem no lugar.<br>
+  3. <code>Ctrl + P</code> → Destino <strong>Salvar como PDF</strong> → Layout <strong>Retrato</strong> → Margens <strong>Padrão</strong> → marque <strong>Gráficos de plano de fundo</strong>.<br>
+  4. Preencha o link do vídeo na capa antes de imprimir.
+</div>
+
+<!-- ============================ CAPA ============================ -->
+<section class="capa">
+  <span class="marca">FIAP · 4SIS · SPRINT 4</span>
+  <h1>OmniClaro</h1>
+  <p class="sub">Orquestrador Conversacional Unificado — Relatório de Melhorias</p>
+  <div class="regua"></div>
+
+  <dl>
+    <dt>Disciplina</dt><dd>Challenge — 2º semestre de 2026</dd>
+    <dt>Parceiro</dt><dd>Claro</dd>
+    <dt>Entrega</dt><dd>Sprint 4 — Implementação de melhorias</dd>
+    <dt>Repositório</dt><dd>github.com/WevertonLuis/omniclaro</dd>
+  </dl>
+
+  <div class="equipe">
+    <strong>Equipe MINDERS</strong>
+    <ul>
+      <li>Beatriz Maria dos Santos — RM 552233</li>
+      <li>Heloisa Vital de Melo — RM 552323</li>
+      <li>Weverton Luis Santana de Sá — RM 98730</li>
+    </ul>
+  </div>
+
+  <div class="destaque-link">
+    <strong>Vídeo de demonstração</strong>
+    <span class="url">[ COLE AQUI O LINK PÚBLICO DO VÍDEO ]</span>
+  </div>
+</section>
+
+<!-- ====================== SUMÁRIO EXECUTIVO ====================== -->
+<section class="secao">
+  <h2>Sumário executivo</h2>
+  <p class="tagline">O que mudou no OmniClaro depois da demonstração da Sprint 3.</p>
+
+  <p>
+    O OmniClaro é um orquestrador conversacional que unifica suporte técnico, faturamento e vendas da Claro
+    em um único fluxo de atendimento, extraindo múltiplas intenções de uma só mensagem do cliente e
+    transferindo o caso para um atendente humano com todo o contexto já montado.
+  </p>
+  <p>
+    A partir dos apontamentos recebidos no período de demonstração da solução, foram implementadas cinco
+    melhorias. Elas não acrescentam uma jornada nova: atacam pontos em que o protótipo funcionava, mas não
+    entregava o valor prometido — gestão sem visibilidade, fila sem triagem, cliente sem retorno durante a
+    espera e classificação que só podia ser corrigida alterando código.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th style="width:22pt">#</th><th>Melhoria</th><th>Problema que resolve</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="num">1</td>
+        <td><strong>OmniDashboard gerencial com métricas em tempo real</strong></td>
+        <td>Não havia visibilidade executiva de volumetria nem de SLAs.</td>
+      </tr>
+      <tr>
+        <td class="num">2</td>
+        <td><strong>Filtros avançados e busca na fila de atendimento</strong></td>
+        <td>Operadores demoravam para localizar o chamado de um cliente específico.</td>
+      </tr>
+      <tr>
+        <td class="num">3</td>
+        <td><strong>Alertas visuais por nível de urgência</strong></td>
+        <td>Não dava para saber, olhando a fila, quem estava mais insatisfeito.</td>
+      </tr>
+      <tr>
+        <td class="num">4</td>
+        <td><strong>Status progressivo e feedback tátil no WhatsApp</strong></td>
+        <td>O cliente achava que o bot havia travado durante consultas aos sistemas legados.</td>
+      </tr>
+      <tr>
+        <td class="num">5</td>
+        <td><strong>Módulo de curadoria de NLU com feedback loop</strong></td>
+        <td>Corrigir um erro de classificação exigia alterar o código-fonte.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="nota">
+    Todas as medições apresentadas neste documento foram obtidas em execução real do protótipo, com o motor
+    de NLU conectado à API do Google Gemini. Nenhum número foi estimado.
+  </p>
+</section>
+
+<!-- ========================= MELHORIA 1 ========================= -->
+<section class="secao">
+  <h2><span class="num">1</span>OmniDashboard gerencial com métricas em tempo real</h2>
+  <p class="tagline">Visibilidade executiva de volumetria e indicadores de SLA.</p>
+
+  <div class="origem">
+    <strong>Origem:</strong> apontamento de que a solução não oferecia visão gerencial — era possível atender,
+    mas não acompanhar a operação nem verificar se os SLAs declarados estavam sendo cumpridos.
+  </div>
+
+  <h3 class="antes">Como estava</h3>
+  <p>
+    Existia apenas a tela do atendente. Não havia qualquer painel de gestão: nenhuma consolidação de
+    volumetria, nenhum indicador de desempenho e nenhuma forma de verificar os SLAs. O painel abria
+    diretamente no navegador, sem autenticação, e o atendente era um nome fixo escrito no código — toda ação
+    ficava registrada como a mesma pessoa, o que tornava impossível medir desempenho individual.
+  </p>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura do painel <strong>ANTES</strong>
+      <span class="arquivo">imagens/01-antes.png</span>
+      <span class="como">Abra <code>localhost:5175</code> — tela única de fila, sem login e sem área gerencial.</span>
+    </div>
+    <figcaption>Figura 1.1 — Versão anterior: apenas a fila do atendente, sem painel de gestão.</figcaption>
+  </figure>
+
+  <h3 class="depois">Como ficou</h3>
+  <p>
+    Foi criado o painel do supervisor, separado por papel de acesso. Ele consolida volumetria, intenções mais
+    frequentes, canais de origem, desempenho por operador e os indicadores de SLA da documentação técnica,
+    incluindo a latência P95 das respostas automáticas — medida a partir do tempo real de cada resposta,
+    agora persistido no banco.
+  </p>
+  <p>
+    A atualização deixou de ser por consulta periódica. O servidor emite um aviso por WebSocket quando algum
+    número muda e o painel busca os dados uma única vez, exibindo o selo <em>Ao vivo</em>.
+  </p>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura do painel <strong>DEPOIS</strong>
+      <span class="arquivo">imagens/01-depois.png</span>
+      <span class="como">Entre em <code>localhost:5173</code> como supervisor. Capture o topo com o selo “Ao vivo” e os seis indicadores.</span>
+    </div>
+    <figcaption>Figura 1.2 — Painel do supervisor com indicadores e atualização em tempo real.</figcaption>
+  </figure>
+
+  <div class="evidencia"><span class="rotulo">Medição em execução</span>Latência P95 do bot ......... 4,7 s   (meta ≤ 1,8 s — abaixo da meta)
+Mediana .................... 1,8 s
+Resolução sem humano (FCR) .. 40 %   (meta ≥ 70 %)
+Confiança média da IA ....... 93 %   (meta ≥ 80 % — atingida)</div>
+
+  <div class="justificativa">
+    <h4>Justificativa</h4>
+    <p>
+      Sem identidade individual, nenhum indicador de desempenho tem significado: não é possível medir tempo
+      de atendimento por operador se todas as ações são registradas sob o mesmo nome. O controle de acesso
+      por papel foi, portanto, pré-requisito do painel, e não um item separado.
+    </p>
+    <p>
+      A troca de consulta periódica por notificação do servidor foi deliberada. O cálculo das métricas
+      percorre várias tabelas; recalcular a cada mensagem para todos os painéis abertos seria caro. Envia-se
+      o aviso de que algo mudou, e o painel busca uma vez.
+    </p>
+    <p>
+      O indicador de latência exibe <strong>4,7 s contra uma meta de 1,8 s</strong>, e esse número foi mantido
+      à vista de propósito. O diagnóstico remoto simulado leva de 2 a 3 segundos por especificação da própria
+      documentação técnica, o que torna a meta inalcançável nesta fase. Um painel que exibe apenas resultados
+      favoráveis não cumpre a função de instrumento de gestão.
+    </p>
+  </div>
+</section>
+
+<!-- ========================= MELHORIA 2 ========================= -->
+<section class="secao">
+  <h2><span class="num">2</span>Filtros avançados e busca na fila de atendimento</h2>
+  <p class="tagline">Localizar um chamado específico sem percorrer a fila inteira.</p>
+
+  <div class="origem">
+    <strong>Origem:</strong> apontamento de que o operador levava tempo demais para localizar o chamado de um
+    cliente determinado, especialmente em casos reincidentes, nos quais é preciso recuperar o histórico antes
+    de responder.
+  </div>
+
+  <h3 class="antes">Como estava</h3>
+  <p>
+    A fila era uma lista simples, em ordem de chegada, sem campo de busca e sem nenhum filtro. Com poucos
+    chamados a limitação não aparece; em volume real, encontrar um cliente exige percorrer a lista visualmente.
+  </p>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura da fila <strong>ANTES</strong>
+      <span class="arquivo">imagens/02-antes.png</span>
+      <span class="como">Abra <code>localhost:5175</code> com chamados na fila. Enquadre o topo, mostrando que não existe campo de busca.</span>
+    </div>
+    <figcaption>Figura 2.1 — Versão anterior: lista sem busca e sem filtros.</figcaption>
+  </figure>
+
+  <h3 class="depois">Como ficou</h3>
+  <p>
+    A fila ganhou busca textual e filtros por nível de prioridade e por cliente reincidente. O índice de busca
+    é montado no servidor e cobre nome, CPF, protocolo, plano, resumo da IA, intenções classificadas e o texto
+    completo da conversa — tudo normalizado sem acentuação, de modo que a grafia digitada não impede o
+    resultado.
+  </p>
+  <p>
+    O índice também associa vocabulário do dia a dia às intenções técnicas: buscar por <em>boleto</em> encontra
+    chamados classificados como <code>SEGUNDA_VIA_FATURA</code>, e <em>wifi</em> encontra
+    <code>SUPORTE_TECNICO_INSTABILIDADE</code>, sem que o operador precise conhecer a nomenclatura interna.
+  </p>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura da busca <strong>DEPOIS</strong>
+      <span class="arquivo">imagens/02-depois.png</span>
+      <span class="como">Em <code>localhost:5173</code>, digite <code>cancelar</code> na busca. Capture mostrando o contador “Mostrando 1 de 4”.</span>
+    </div>
+    <figcaption>Figura 2.2 — Busca aplicada, com filtros de prioridade e o contador de resultados.</figcaption>
+  </figure>
+
+  <div class="justificativa">
+    <h4>Justificativa</h4>
+    <p>
+      A busca foi construída no servidor, e não no navegador, porque precisa alcançar o conteúdo das mensagens
+      trocadas — dado que não está no card exibido. Isso permite localizar um chamado por algo que o cliente
+      escreveu, e não apenas pelo que a fila mostra.
+    </p>
+    <p>
+      O mapeamento entre vocabulário comum e nomenclatura interna evita que o operador precise memorizar os
+      nomes das intenções do sistema. Em uma operação com rotatividade de pessoal, essa diferença determina se
+      a ferramenta é usada ou ignorada.
+    </p>
+  </div>
+</section>
+
+<!-- ========================= MELHORIA 3 ========================= -->
+<section class="secao">
+  <h2><span class="num">3</span>Alertas visuais por nível de urgência</h2>
+  <p class="tagline">Priorização da fila a partir da análise de sentimento.</p>
+
+  <div class="origem">
+    <strong>Origem:</strong> apontamento de que, olhando a fila de transbordo, não era possível distinguir
+    quais clientes estavam mais insatisfeitos — todos os cards tinham o mesmo peso visual.
+  </div>
+
+  <h3 class="antes">Como estava</h3>
+  <p>
+    Os cards eram idênticos e ordenados apenas por ordem de chegada. O sentimento já era extraído pela IA, mas
+    não influenciava a apresentação: um cliente prestes a cancelar aparecia abaixo de uma dúvida simples que
+    tivesse chegado primeiro.
+  </p>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura da fila <strong>ANTES</strong>
+      <span class="arquivo">imagens/03-antes.png</span>
+      <span class="como">Abra <code>localhost:5175</code> com vários chamados. Enquadre de modo que se veja que todos os cards são iguais.</span>
+    </div>
+    <figcaption>Figura 3.1 — Versão anterior: cards sem diferenciação, em ordem de chegada.</figcaption>
+  </figure>
+
+  <h3 class="depois">Como ficou</h3>
+  <p>
+    Cada chamado recebe uma pontuação a partir de sentimento, urgência, risco de cancelamento, reincidência e
+    tempo de espera, e a fila passa a ser ordenada por ela. O nível aparece como etiqueta, barra lateral
+    colorida e contador de casos críticos no topo.
+  </p>
+
+  <table>
+    <thead><tr><th>Nível</th><th>Cliente</th><th>Motivos atribuídos pelo sistema</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rotulo-nivel n-critica">CRÍTICA</span></td><td>Carlos Eduardo Nunes</td><td>Cliente frustrado · Urgência alta · Reincidente (2 chamados)</td></tr>
+      <tr><td><span class="rotulo-nivel n-alta">ALTA</span></td><td>Roberto Carvalho Lima</td><td>Cliente frustrado · Urgência alta</td></tr>
+      <tr><td><span class="rotulo-nivel n-media">MÉDIA</span></td><td>Juliana Ribeiro Matos</td><td>Serviço degradado</td></tr>
+      <tr><td><span class="rotulo-nivel n-baixa">BAIXA</span></td><td>Mariana Alves Prado</td><td>Sem sinais de urgência</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura da fila priorizada <strong>DEPOIS</strong>
+      <span class="arquivo">imagens/03-depois.png</span>
+      <span class="como">Em <code>localhost:5173</code>, capture a fila inteira mostrando os quatro níveis em ordem e os motivos em texto.</span>
+    </div>
+    <figcaption>Figura 3.2 — Fila ordenada por urgência, com o motivo de cada classificação em texto.</figcaption>
+  </figure>
+
+  <div class="justificativa">
+    <h4>Justificativa</h4>
+    <p>
+      Cada card exibe <strong>em texto</strong> os motivos que o levaram àquele nível. Isso atende a dois
+      objetivos. O primeiro é de acessibilidade: o par vermelho/âmbar usado na sinalização apresenta diferença
+      perceptual insuficiente sob deuteranopia, de forma que a cor não pode ser o único canal de informação.
+      O segundo é operacional: saber que um chamado é crítico tem pouco valor prático sem saber por quê.
+    </p>
+    <p>
+      Durante a validação identificou-se que a faixa MÉDIA era inalcançável — uma urgência média isolada
+      somava um ponto, enquanto a faixa iniciava em três. Na prática, um problema real de serviço caía na
+      mesma classificação de uma dúvida informativa. A pontuação foi corrigida.
+    </p>
+  </div>
+</section>
+
+<!-- ========================= MELHORIA 4 ========================= -->
+<section class="secao">
+  <h2><span class="num">4</span>Status progressivo e feedback tátil no WhatsApp</h2>
+  <p class="tagline">O cliente acompanha o que está sendo feito durante a espera.</p>
+
+  <div class="origem">
+    <strong>Origem:</strong> apontamento de que, durante as chamadas aos sistemas legados, os usuários
+    interpretavam a ausência de retorno como travamento do bot.
+  </div>
+
+  <h3 class="antes">Como estava</h3>
+  <p>
+    O canal exibia apenas três pontos animados durante toda a espera, que chega a cinco segundos quando há
+    consulta de diagnóstico de rede. O indicador não distingue “processando” de “travado”, e o cliente não
+    tem como saber se vale esperar.
+  </p>
+
+  <h3 class="depois">Como ficou</h3>
+  <p>
+    O cliente passa a ver cada etapa e o momento em que ela conclui. Em dispositivos compatíveis, cada etapa
+    concluída dispara uma vibração curta — retorno perceptível sem exigir que o usuário esteja olhando a tela.
+  </p>
+
+  <div class="par">
+    <figure>
+      <div class="vazio">
+        <strong>ANTES</strong>
+        <span class="arquivo">imagens/04-antes.png</span>
+        <span class="como">Em <code>localhost:5176</code>, envie o cenário e capture durante a espera: só os três pontos.</span>
+      </div>
+      <figcaption>Figura 4.1 — Versão anterior: três pontos, sem informação.</figcaption>
+    </figure>
+    <figure>
+      <div class="vazio">
+        <strong>DEPOIS</strong>
+        <span class="arquivo">imagens/04-depois.png</span>
+        <span class="como">Em <code>localhost:5174</code>, envie o mesmo cenário e capture com as etapas visíveis.</span>
+      </div>
+      <figcaption>Figura 4.2 — Versão atual: etapas nomeadas, com marca de conclusão.</figcaption>
+    </figure>
+  </div>
+
+  <div class="evidencia"><span class="rotulo">Sequência capturada em execução</span>0,5 s   ⟳ Entendendo sua mensagem
+2,0 s   ✓ Entendendo sua mensagem
+        ⟳ Fazendo o diagnóstico remoto do seu equipamento
+        ⟳ Consultando as ofertas disponíveis
+2,5 s   ✓ Ofertas consultadas            (diagnóstico ainda em andamento)
+4,0 s   resposta unificada entregue ao cliente</div>
+
+  <div class="justificativa">
+    <h4>Justificativa</h4>
+    <p>
+      A mesma espera, informada, deixa de ser percebida como falha. O ganho não é de desempenho — a consulta
+      continua levando o mesmo tempo —, mas de confiança: o cliente sabe que o sistema está trabalhando e o
+      que ele está fazendo.
+    </p>
+    <p>
+      Há um efeito secundário relevante para a avaliação da arquitetura: a sequência torna <strong>visível o
+      despacho em paralelo</strong>. As duas consultas aparecem juntas e a de catálogo conclui antes da de
+      rede, evidenciando na interface a decisão central do projeto — resolver suporte técnico e oportunidade
+      comercial no mesmo atendimento, e não em dois.
+    </p>
+  </div>
+</section>
+
+<!-- ========================= MELHORIA 5 ========================= -->
+<section class="secao">
+  <h2><span class="num">5</span>Módulo de curadoria de NLU com feedback loop</h2>
+  <p class="tagline">Corrigir a classificação sem alterar código-fonte.</p>
+
+  <div class="origem">
+    <strong>Origem:</strong> apontamento de que corrigir um falso positivo do modelo exigia alterar o
+    código-fonte e reimplantar a aplicação, o que inviabiliza o ajuste contínuo em operação.
+  </div>
+
+  <h3 class="antes">Como estava</h3>
+  <p>
+    O comportamento do classificador dependia exclusivamente do modelo e do prompt. Uma gíria regional não
+    reconhecida ou um falso positivo recorrente só podiam ser corrigidos por um desenvolvedor, alterando
+    código e publicando uma nova versão.
+  </p>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura da classificação incorreta <strong>ANTES</strong>
+      <span class="arquivo">imagens/05-antes.png</span>
+      <span class="como">Envie <code>meu modem ta mudo</code> no chat e capture o painel mostrando a classificação como OUTROS, com confiança baixa.</span>
+    </div>
+    <figcaption>Figura 5.1 — Expressão não reconhecida, classificada como OUTROS.</figcaption>
+  </figure>
+
+  <h3 class="depois">Como ficou</h3>
+  <p>
+    O supervisor dispõe de um painel de curadoria com dois tipos de regra: <strong>sinonímia</strong>, em que
+    um termo passa a indicar determinada intenção, e <strong>bloqueio</strong>, em que um termo deixa de
+    indicá-la. As regras valem a partir da mensagem seguinte, sem reinício da aplicação, e cada uma registra
+    quantas vezes atuou — o que permite avaliar se continua útil.
+  </p>
+
+  <figure>
+    <div class="vazio">
+      Insira aqui a captura do painel de curadoria <strong>DEPOIS</strong>
+      <span class="arquivo">imagens/05-depois.png</span>
+      <span class="como">Capture o painel com a regra cadastrada e a mesma frase reclassificada corretamente.</span>
+    </div>
+    <figcaption>Figura 5.2 — Regra de curadoria ativa e a nova classificação da mesma expressão.</figcaption>
+  </figure>
+
+  <div class="evidencia"><span class="rotulo">Validação em execução</span>Mensagem: "meu modem ta mudo desde ontem"
+
+antes da regra ...... OUTROS @ 0,35
+                      (confiança abaixo do limiar — caso iria para fila humana)
+
+regra cadastrada .... "ta mudo"  →  SUPORTE_TECNICO_SEM_CONEXAO
+
+depois da regra ..... SUPORTE_TECNICO_SEM_CONEXAO @ 0,95
+                      (sem reinício da aplicação)</div>
+
+  <div class="justificativa">
+    <h4>Justificativa</h4>
+    <p>
+      As regras são aplicadas <strong>após</strong> a inferência do modelo, e não antes. A curadoria corrige a
+      saída sem substituir o Gemini: o histórico continua registrando o que o modelo havia classificado, o que
+      preserva a rastreabilidade e permite avaliar o desempenho real do motor ao longo do tempo.
+    </p>
+    <p>
+      O recurso é restrito ao perfil de supervisor e toda alteração é registrada na trilha de auditoria.
+      A curadoria altera a interpretação de mensagens de clientes em produção — não é configuração que cada
+      operador deva ajustar isoladamente.
+    </p>
+  </div>
+</section>
+
+<!-- ========================= ENCERRAMENTO ========================= -->
+<section class="secao">
+  <h2>Considerações finais</h2>
+
+  <h3>Limitações conhecidas</h3>
+  <ul class="lista">
+    <li>
+      <strong>Latência acima da meta.</strong> O P95 de 4,7 s não atende ao SLA de 1,8 s da documentação. A
+      causa é o diagnóstico de rede simulado, especificado para levar de 2 a 3 s. Em integração real, o tempo
+      depende do barramento da operadora.
+    </li>
+    <li>
+      <strong>Modelo de NLU.</strong> A documentação técnica especifica o <code>gemini-1.5-flash</code>, que foi
+      descontinuado pelo fornecedor durante o desenvolvimento — a API passou a responder 404. O protótipo
+      utiliza um modelo da linha atual; a troca é feita por variável de ambiente, sem alteração de código.
+    </li>
+    <li>
+      <strong>Sistemas legados simulados.</strong> Diagnóstico de rede e faturamento permanecem como mocks
+      controlados, conforme a Matriz de Status do Protótipo.
+    </li>
+    <li>
+      <strong>Autenticação simplificada.</strong> O controle de acesso por papel foi implementado; OAuth
+      corporativo e duplo fator permanecem fora do escopo do protótipo acadêmico.
+    </li>
+  </ul>
+
+  <h3>Resumo das entregas</h3>
+  <table>
+    <thead><tr><th>Melhoria</th><th>Evidência de funcionamento</th></tr></thead>
+    <tbody>
+      <tr><td>Painel gerencial em tempo real</td><td>Indicadores atualizaram sem recarregar a página ao receber um novo atendimento.</td></tr>
+      <tr><td>Busca e filtros na fila</td><td>Busca textual e filtro por prioridade reduzindo a lista exibida.</td></tr>
+      <tr><td>Alertas por urgência</td><td>Quatro níveis distintos atribuídos e fila reordenada automaticamente.</td></tr>
+      <tr><td>Status progressivo no WhatsApp</td><td>Etapas exibidas em sequência, evidenciando o despacho em paralelo.</td></tr>
+      <tr><td>Curadoria de NLU</td><td>Expressão reclassificada de OUTROS para a intenção correta sem reimplantação.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="destaque-link" style="margin-top:20pt">
+    <strong>Vídeo de demonstração</strong>
+    <span class="url">[ COLE AQUI O LINK PÚBLICO DO VÍDEO ]</span>
+  </div>
+
+  <p class="nota">
+    Código-fonte completo e histórico de alterações disponíveis em
+    <strong>github.com/WevertonLuis/omniclaro</strong>.
+  </p>
+</section>
+
+<script>
+  /* Substitui o marcador pela imagem quando o arquivo existe na pasta.
+     Enquanto não existir, o quadro tracejado permanece indicando o nome
+     esperado — assim o documento nunca imprime com um espaço em branco mudo. */
+  document.querySelectorAll('.vazio').forEach(function (marcador) {
+    var caminho = marcador.querySelector('.arquivo').textContent.trim();
+    var img = new Image();
+    img.onload = function () {
+      var fig = document.createElement('img');
+      fig.src = caminho;
+      fig.alt = marcador.querySelector('.como') ? marcador.querySelector('.como').textContent : '';
+      marcador.replaceWith(fig);
+    };
+    img.src = caminho;
+  });
+</script>

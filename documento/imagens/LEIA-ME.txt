@@ -1,0 +1,100 @@
+================================================================================
+CAPTURAS DE TELA DO RELATORIO — onde cada imagem entra
+================================================================================
+
+Salve cada captura NESTA PASTA com EXATAMENTE o nome indicado (minusculo, .png).
+Depois recarregue o relatorio-sprint4.html: o quadro vermelho some e a imagem
+aparece no lugar.
+
+PORTAS
+  ANTES   dashboard  http://localhost:5175      chat  http://localhost:5176
+  DEPOIS  dashboard  http://localhost:5173      chat  http://localhost:5174
+
+LOGIN (so na versao DEPOIS; a antiga abre direto)
+  operador    mariana.costa@claro.com.br / operador123
+  supervisor  supervisor@claro.com.br    / supervisor123
+
+
+--------------------------------------------------------------------------------
+01-antes.png        MELHORIA 1 — nao havia painel gerencial
+--------------------------------------------------------------------------------
+  Onde:  localhost:5175
+  O que: a tela inteira. Abre direto na fila, sem login e sem area de gestao.
+  Dica:  enquadre a janela toda, para ficar claro que nao existe outra aba.
+
+01-depois.png       MELHORIA 1 — painel do supervisor
+  Onde:  localhost:5173, logado como SUPERVISOR
+  O que: o topo do painel — selo "Ao vivo" + os seis indicadores.
+  Dica:  o KPI "Latencia P95 do bot" precisa aparecer. E ele que prova o SLA.
+
+
+--------------------------------------------------------------------------------
+02-antes.png        MELHORIA 2 — fila sem busca
+--------------------------------------------------------------------------------
+  Onde:  localhost:5175, com chamados na fila
+  O que: o topo da fila. Nao existe campo de busca nem filtro.
+
+02-depois.png       MELHORIA 2 — busca funcionando
+  Onde:  localhost:5173, como OPERADOR
+  O que: digite  cancelar  no campo de busca.
+  Dica:  capture com o contador "Mostrando 1 de 4" visivel. E a prova do filtro.
+
+
+--------------------------------------------------------------------------------
+03-antes.png        MELHORIA 3 — cards sem prioridade
+--------------------------------------------------------------------------------
+  Onde:  localhost:5175, com 3 ou mais chamados
+  O que: a lista. Todos os cards iguais, em ordem de chegada.
+
+03-depois.png       MELHORIA 3 — fila priorizada
+  Onde:  localhost:5173, como OPERADOR, sem filtro aplicado
+  O que: a fila inteira, mostrando CRITICA > ALTA > MEDIA > BAIXA em ordem.
+  Dica:  precisa dar para ler os motivos em texto embaixo de cada card
+         ("Cliente frustrado", "Reincidente (2 chamados anteriores)").
+         E o que mostra que a cor nao e o unico sinal.
+
+
+--------------------------------------------------------------------------------
+04-antes.png        MELHORIA 4 — so os tres pontinhos
+--------------------------------------------------------------------------------
+  Onde:  localhost:5176
+  O que: envie  "Meu Wi-Fi esta caindo toda hora, e queria saber se tem pacote
+         com HBO"  e capture DURANTE a espera.
+  Dica:  a janela de captura e de ~5 s. Deixe o print preparado antes de enviar.
+         Esta imagem fica lado a lado com a 04-depois, entao enquadre so o chat.
+
+04-depois.png       MELHORIA 4 — etapas visiveis
+  Onde:  localhost:5174
+  O que: mesma frase, capturada DURANTE a espera.
+  Dica:  o melhor instante e por volta de 2,5 s, quando aparece
+         "Ofertas consultadas" ja com check e o diagnostico ainda girando.
+         Esse quadro mostra as duas consultas em paralelo.
+
+
+--------------------------------------------------------------------------------
+05-antes.png        MELHORIA 5 — expressao nao reconhecida
+--------------------------------------------------------------------------------
+  Onde:  localhost:5174 (chat) ou o painel do atendente
+  O que: envie  "meu modem ta mudo"  e capture a classificacao como OUTROS
+         com confianca baixa.
+  Alternativa: o AI Context Panel do chamado mostra a intencao e o percentual.
+
+05-depois.png       MELHORIA 5 — regra criada e frase reclassificada
+  Onde:  localhost:5173, como SUPERVISOR, secao "Curadoria de NLU"
+  O que: o painel com a regra  ta mudo -> SUPORTE_TECNICO_SEM_CONEXAO  cadastrada.
+  Dica:  se couber, capture junto a frase ja reclassificada em 95%.
+         Pode usar duas imagens coladas numa so.
+
+
+================================================================================
+DEPOIS DE SALVAR TUDO
+================================================================================
+  1. Abra  documento/relatorio-sprint4.html  no navegador
+  2. Confira que nenhum quadro vermelho sobrou
+  3. Preencha o link do video na capa e no final
+  4. Ctrl + P  ->  Salvar como PDF
+     Layout: Retrato | Margens: Padrao | MARCAR "Graficos de plano de fundo"
+
+  Sem marcar "graficos de plano de fundo", o PDF sai sem as cores e sem os
+  blocos escuros de evidencia.
+================================================================================

@@ -369,7 +369,10 @@ export class HandoffService {
       pontuacao += 3;
       motivos.push('Urgencia alta');
     } else if (e.urgencia === 'MEDIA') {
-      pontuacao += 1;
+      // Vale 2 e nao 1: com 1 ponto a faixa MEDIA era inalcancavel sem um
+      // segundo sinal, e um problema real caia no mesmo balde de uma duvida.
+      pontuacao += 2;
+      motivos.push('Servico degradado');
     }
 
     if (e.intencoes.includes('CANCELAMENTO')) {
@@ -391,7 +394,7 @@ export class HandoffService {
     }
 
     const nivel: NivelPrioridade =
-      pontuacao >= 8 ? 'CRITICA' : pontuacao >= 5 ? 'ALTA' : pontuacao >= 3 ? 'MEDIA' : 'BAIXA';
+      pontuacao >= 8 ? 'CRITICA' : pontuacao >= 5 ? 'ALTA' : pontuacao >= 2 ? 'MEDIA' : 'BAIXA';
 
     if (motivos.length === 0) motivos.push('Sem sinais de urgencia');
 

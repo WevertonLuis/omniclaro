@@ -86,12 +86,25 @@ export function extrairPorHeuristica(texto: string, latenciaMs = 0): ResultadoNl
   intencoes.sort((a, b) => b.confianca - a.confianca);
 
   const negativo = /\b(p[eé]ssimo|absurdo|revoltado|cansado|de novo|toda hora|nunca funciona)\b/i.test(texto);
+  const reincidencia = /\b(terceira vez|segunda vez|de novo|novamente|outra vez|ja (liguei|reclamei|abri)|continua (igual|a mesma))\b/i.test(texto);
   const requerHumano = intencoes.some((i) => i.nome === 'FALAR_COM_ATENDENTE' || i.nome === 'CANCELAMENTO');
+
+  const nomes = intencoes.map((i) => i.nome);
+  const servicoParado = nomes.includes('SUPORTE_TECNICO_SEM_CONEXAO') || nomes.includes('CANCELAMENTO');
+  const servicoDegradado = nomes.some((n) => n.startsWith('SUPORTE_TECNICO'));
+
+  /**
+   * Urgencia pelo PROBLEMA, nunca pelo canal pedido.
+   * A versao anterior marcava ALTA sempre que o cliente dissesse "atendente",
+   * entao qualquer duvida educada entrava como urgente e a fila perdia
+   * qualquer capacidade de priorizar.
+   */
+  const urgencia = servicoParado || reincidencia ? 'ALTA' : servicoDegradado ? 'MEDIA' : 'BAIXA';
 
   return {
     intencoes,
-    sentimento: negativo ? 'FRUSTRADO' : 'NEUTRO',
-    urgencia: negativo || requerHumano ? 'ALTA' : 'MEDIA',
+    sentimento: negativo || reincidencia ? 'FRUSTRADO' : 'NEUTRO',
+    urgencia,
     resumo: `[Fallback heuristico - Gemini indisponivel] Cliente escreveu: "${texto.slice(0, 180)}". Intencoes reconhecidas por palavra-chave: ${intencoes
       .map((i) => i.nome)
       .join(', ')}.`,
